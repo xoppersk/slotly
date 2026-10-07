@@ -1,0 +1,134 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* ---------------------------------------------------------------------------
+ * Slotly design tokens — "open calendar". Light-first, warm stone neutrals,
+ * deep teal primary, warm amber accent. Dashboard dark mode via `.dark`.
+ * ------------------------------------------------------------------------- */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-destructive: var(--destructive);
+  --color-info: var(--info);
+  --color-slot-available: var(--slot-available);
+  --color-slot-selected: var(--slot-selected);
+  --color-slot-unavailable: var(--slot-unavailable);
+  --color-slot-pending: var(--slot-pending);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+:root {
+  /* Brand */
+  --primary: #0e7c6b;
+  --primary-foreground: #ffffff;
+  --primary-hover: #0b6557;
+  --accent: #f59e0b;
+  --accent-foreground: #1c1917;
+
+  /* Surfaces */
+  --background: #fafaf8;
+  --foreground: #1c1917;
+  --card: #ffffff;
+  --card-foreground: #1c1917;
+  --muted: #f1efea;
+  --muted-foreground: #78716c;
+  --border: #e7e3da;
+  --input: #e7e3da;
+  --ring: #0e7c6b;
+
+  /* shadcn aliases (mapped onto the Slotly palette) */
+  --popover: #ffffff;
+  --popover-foreground: #1c1917;
+  --secondary: #f1efea;
+  --secondary-foreground: #1c1917;
+  --destructive-foreground: #ffffff;
+
+  /* Status */
+  --success: #16a34a;
+  --warning: #d97706;
+  --destructive: #dc2626;
+  --info: #0284c7;
+
+  /* Slot pill states */
+  --slot-available: #ffffff; /* outline pill on card */
+  --slot-selected: #0e7c6b; /* primary fill */
+  --slot-unavailable: #e7e3da; /* taken / closed */
+  --slot-pending: #fef3c7; /* held (amber tint) */
+
+  /* Shape */
+  --radius: 0.75rem; /* cards; inputs/buttons use radius-md/sm above */
+}
+
+.dark {
+  --background: #1c1917;
+  --foreground: #fafaf8;
+  --card: #292524;
+  --card-foreground: #fafaf8;
+  --muted: #292524;
+  --muted-foreground: #a8a29e;
+  --border: #44403c;
+  --input: #44403c;
+  --primary: #14a085; /* lightened for contrast on dark */
+  --primary-foreground: #1c1917;
+  --primary-hover: #0e7c6b;
+  --popover: #292524;
+  --popover-foreground: #fafaf8;
+  --secondary: #44403c;
+  --secondary-foreground: #fafaf8;
+  --accent: #fbbf24;
+  --ring: #14a085;
+  --slot-available: #292524;
+  --slot-selected: #14a085;
+  --slot-unavailable: #44403c;
+  --slot-pending: #574410; /* darkened amber tint */
+  /* status + slot-unavailable text stay readable on dark */
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.02em;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+/* Tabular numerals for times, dates, prices — slot grids align. */
+@utility tnum {
+  font-variant-numeric: tabular-nums;
+}
