@@ -12,6 +12,7 @@ import {
 
 import { createClient } from "@/lib/supabase/server";
 import { formatCents } from "@/lib/format";
+import { DEMO_SLUG, demoPublicData } from "@/lib/demo-data";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -61,7 +62,13 @@ async function getBusinessData(slug: string) {
     .select("*")
     .eq("slug", slug)
     .single();
-  if (error || !businessRaw) return null;
+  // Demo fallback: the Harbor & Pine demo business renders from the design
+  // truth ledger when it has no live database row. Every other unknown slug
+  // still 404s (unpublished businesses stay unpublished).
+  if (error || !businessRaw) {
+    if (slug === DEMO_SLUG) return demoPublicData();
+    return null;
+  }
   const business = businessRaw as BusinessPublicRow;
 
   const { data: servicesRaw } = await supabase
