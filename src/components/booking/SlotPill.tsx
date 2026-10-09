@@ -26,7 +26,7 @@ const slotPillVariants = cva(
         available:
           "border-border bg-card text-foreground hover:border-primary hover:text-primary",
         selected:
-          "border-primary bg-primary text-primary-foreground hover:bg-primary-hover",
+          "border-primary bg-primary font-bold text-primary-foreground shadow-[inset_0_0_0_2px_var(--card)] hover:bg-primary-hover",
         unavailable:
           "cursor-not-allowed border-transparent bg-slot-unavailable text-muted-foreground line-through decoration-muted-foreground/60",
         pending:

@@ -95,7 +95,7 @@ export function WeekStrip({
               isSelected
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-border bg-card text-foreground hover:border-primary/50",
-              disabled && "cursor-not-allowed opacity-50"
+              disabled && "cursor-not-allowed opacity-40 line-through"
             )}
           >
             <span className="text-[11px] font-medium uppercase tracking-wide tnum">

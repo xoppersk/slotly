@@ -1,24 +1,18 @@
-import {
-  Scissors,
-  User,
-  CalendarClock,
-  Receipt,
-  FileText,
-} from "lucide-react";
-
 import { cn } from "@/lib/utils";
 import { formatCents } from "@/lib/format";
-import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 
 /**
- * BookingSummaryCard — service / staff / datetime / price / policy
- * line-item summary. Reused in the wizard (side panel + mobile bottom bar),
- * the review step, the confirmation screen, the manage-booking page, and
- * the dashboard booking drawer. Purely presentational: the caller owns the
- * data and formatting.
+ * BookingSummaryCard — the "Your booking" summary panel from the Slotly
+ * signature UI (Flagship UI Designs · Slotly · Signature).
+ *
+ * Anatomy (verbatim from the design): Newsreader "Your booking" heading,
+ * label/value sum-blocks with hairline dividers, a receipt-total row with
+ * the price in IBM Plex Mono, and an optional Continue action. Reused
+ * identically in the wizard side panel, review step, confirmation screen,
+ * manage-booking page, and dashboard booking drawer.
  */
 export interface BookingSummaryLine {
-  icon?: "service" | "staff" | "datetime" | "policy";
   label: string;
   value: string;
 }
@@ -28,68 +22,71 @@ interface BookingSummaryCardProps {
   /** Total price in integer cents; null hides the total row. */
   totalCents?: number | null;
   currency?: string;
+  /** Label for the total row, e.g. "Total · pay at visit". */
+  totalLabel?: string;
+  /** Panel heading. */
+  title?: string;
+  /** Optional primary action rendered under the total (wizard Continue). */
+  action?: {
+    label: string;
+    onClick: () => void;
+    disabled?: boolean;
+    loading?: boolean;
+  };
   className?: string;
 }
-
-const ICONS = {
-  service: Scissors,
-  staff: User,
-  datetime: CalendarClock,
-  policy: FileText,
-} as const;
 
 export function BookingSummaryCard({
   lines,
   totalCents = null,
   currency = "USD",
+  totalLabel = "Total",
+  title = "Your booking",
+  action,
   className,
 }: BookingSummaryCardProps) {
   return (
     <section
-      aria-label="Booking summary"
+      aria-label={title}
       className={cn(
-        "rounded-[0.75rem] border border-border bg-card p-4 shadow-sm",
+        "border border-border bg-summary p-5 shadow-none",
         className
       )}
     >
-      <dl className="flex flex-col gap-3">
-        {lines.map((line, i) => {
-          const Icon = line.icon ? ICONS[line.icon] : null;
-          return (
-            <div key={`${line.label}-${i}`} className="flex items-start gap-3">
-              {Icon && (
-                <span
-                  aria-hidden
-                  className="flex size-8 shrink-0 items-center justify-center rounded-[0.5rem] bg-primary/10 text-primary"
-                >
-                  <Icon className="size-4" />
-                </span>
-              )}
-              <div className="min-w-0 flex-1">
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  {line.label}
-                </dt>
-                <dd className="truncate text-sm font-medium text-foreground">
-                  {line.value}
-                </dd>
-              </div>
-            </div>
-          );
-        })}
+      <h4 className="border-b border-border pb-4 text-[22px] font-semibold">
+        {title}
+      </h4>
+      <dl>
+        {lines.map((line, i) => (
+          <div
+            key={`${line.label}-${i}`}
+            className="border-b border-border py-3 last:border-b-0"
+          >
+            <dt className="text-xs text-muted-foreground">{line.label}</dt>
+            <dd className="tnum mt-0.5 text-[15px] font-semibold text-foreground">
+              {line.value}
+            </dd>
+          </div>
+        ))}
       </dl>
       {totalCents !== null && (
-        <>
-          <Separator className="my-3" />
-          <div className="flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Receipt className="size-4" aria-hidden />
-              Total due
-            </span>
-            <span className="text-lg font-semibold tnum text-foreground">
-              {formatCents(totalCents, currency)}
-            </span>
-          </div>
-        </>
+        <div className="flex items-baseline justify-between border-t border-border py-3">
+          <span className="text-sm text-muted-foreground">{totalLabel}</span>
+          <strong className="font-mono text-[15px] font-semibold text-foreground">
+            {formatCents(totalCents, currency)}
+          </strong>
+        </div>
+      )}
+      {action && (
+        <Button
+          variant="primary"
+          size="lg"
+          onClick={action.onClick}
+          disabled={action.disabled || action.loading}
+          className="mt-2 w-full"
+        >
+          {action.loading ? "Working…" : action.label}
+        </Button>
       )}
     </section>
   );
