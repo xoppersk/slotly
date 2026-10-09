@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { DEMO_SLUG, demoPublicData } from "@/lib/demo-data";
 import { BookingWizard } from "@/components/wizard/BookingWizard";
 
 import type {
@@ -52,7 +53,31 @@ export default async function BookPage({
     .select("*")
     .eq("slug", slug)
     .single();
-  if (error || !businessRaw) notFound();
+
+  // Demo fallback: the Harbor & Pine demo business runs the wizard on the
+  // design truth ledger (synthetic availability included). Any other
+  // unknown slug still 404s.
+  if (error || !businessRaw) {
+    if (slug !== DEMO_SLUG) notFound();
+    const demo = demoPublicData();
+    const preselect = {
+      serviceId: demo.services.some((s) => s.id === query.service)
+        ? (query.service as string)
+        : null,
+      staffId: demo.staff.some((s) => s.id === query.staff)
+        ? (query.staff as string)
+        : null,
+    };
+    return (
+      <BookingWizard
+        business={demo.business}
+        services={demo.services}
+        staff={demo.staff}
+        preselect={preselect}
+        slug={slug}
+      />
+    );
+  }
   const business = businessRaw as BusinessPublicRow;
 
   const { data: servicesRaw } = await supabase
