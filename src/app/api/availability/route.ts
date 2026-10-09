@@ -21,6 +21,12 @@ import {
 import { generateDayRange } from "@/lib/availability";
 import { AvailabilityQuerySchema } from "@/lib/api/schemas";
 import { createClient } from "@/lib/supabase/server";
+import {
+  DEMO_BUSINESS_ID,
+  demoAvailability,
+  demoBusiness,
+  demoStaff,
+} from "@/lib/demo-data";
 
 import { jsonError, jsonOk, rateLimitOr429, zodError } from "../_lib/http";
 
@@ -33,6 +39,34 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   );
   if (!parsed.success) return zodError(parsed.error);
   const { businessId, serviceId, staffId, from, to } = parsed.data;
+
+  // Demo fallback: the Harbor & Pine demo business has no live database
+  // row, so its slot grid is synthesized from the design truth ledger
+  // (the signature day reproduces the artifact's exact slot layout).
+  if (businessId === DEMO_BUSINESS_ID) {
+    const staff = demoStaff.find((m) => m.id === staffId) ?? demoStaff[0]!;
+    const days = demoAvailability(from, to, staff.id);
+    return jsonOk(
+      {
+        business: {
+          id: demoBusiness.id,
+          name: demoBusiness.name,
+          slug: demoBusiness.slug,
+          timezone: demoBusiness.timezone,
+        },
+        days: days.map((d) => ({
+          date: d.date,
+          status: d.closed
+            ? "closed"
+            : d.slots.length === 0
+              ? "fully_booked"
+              : "open",
+          slots: d.slots,
+        })),
+      },
+      { headers: { "Cache-Control": "public, max-age=60" } },
+    );
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("get_availability", {
