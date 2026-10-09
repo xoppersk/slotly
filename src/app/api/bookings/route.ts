@@ -34,7 +34,80 @@ import {
   manageUrlFor,
   sendBookingNotification,
 } from "../_lib/booking-notify";
-import { jsonError, rateLimitOr429, zodError } from "../_lib/http";
+import { jsonError, jsonOk, rateLimitOr429, zodError } from "../_lib/http";
+import {
+  DEMO_BOOKING_REF,
+  DEMO_BUSINESS_ID,
+  demoAvailability,
+  demoServices,
+  demoStaff,
+} from "@/lib/demo-data";
+
+/**
+ * Demo fallback: create a synthetic (non-persisted) booking for the
+ * Harbor & Pine demo business. The requested slot is validated against
+ * the synthetic availability grid, so the demo funnel behaves like the
+ * real one — including the slot-taken race guard — without touching the
+ * database. Payment-policy services other than `none` cannot complete
+ * in demo mode (no Stripe intent); the payment step surfaces its
+ * designed error state instead.
+ */
+function demoCreateBooking({
+  serviceId,
+  staffId,
+  startsAt,
+  endsAt,
+}: {
+  serviceId: string;
+  staffId: string;
+  startsAt: string;
+  endsAt: string;
+}) {
+  const service = demoServices.find((s) => s.id === serviceId);
+  if (!service) {
+    return jsonError("service_not_found", "That service was not found.", 404);
+  }
+  if (service.payment_policy !== "none") {
+    return jsonError(
+      "payment_unavailable",
+      "Online payment isn't available in the demo — please choose a pay-at-visit service.",
+      400,
+    );
+  }
+  const staff =
+    staffId === "any"
+      ? demoStaff[0]!
+      : (demoStaff.find((m) => m.id === staffId) ?? null);
+  if (!staff) {
+    return jsonError(
+      "staff_not_found",
+      "That staff member was not found.",
+      404,
+    );
+  }
+  const localDate = startsAt.slice(0, 10);
+  const day = demoAvailability(localDate, localDate, staff.id)[0];
+  const slotOk = day?.slots.some(
+    (s) => s.startsAt === startsAt && s.endsAt === endsAt,
+  );
+  if (!slotOk) {
+    return jsonError(
+      "slot_taken",
+      "That slot is no longer available. Please pick another time.",
+      409,
+    );
+  }
+  const tokenBytes = crypto.getRandomValues(new Uint8Array(24));
+  const manageToken = `demo-${Buffer.from(tokenBytes).toString("hex")}`;
+  return jsonOk({
+    bookingId: `demo-${DEMO_BOOKING_REF}`,
+    manageToken,
+    status: "confirmed",
+    holdExpiresAt: null,
+    amountDueCents: 0,
+    amountDueKind: null,
+  });
+}
 
 /** Find the staff that can take this exact slot, or null when none can. */
 function resolveStaff(
@@ -70,6 +143,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const parsed = CreateBookingSchema.safeParse(body);
   if (!parsed.success) return zodError(parsed.error);
   const { businessId, serviceId, staffId, startsAt, endsAt, customer } = parsed.data;
+
+  if (businessId === DEMO_BUSINESS_ID) {
+    return demoCreateBooking({ serviceId, staffId, startsAt, endsAt });
+  }
 
   const supabase = await createClient();
 
