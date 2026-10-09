@@ -6,6 +6,8 @@ import Link from "next/link";
 import { BellRing, MapPin, Phone, Pencil } from "lucide-react";
 
 import { BookingSummaryCard } from "@/components/booking/BookingSummaryCard";
+import { formatCents } from "@/lib/format";
+import { DEMO_BOOKING_REF } from "@/lib/demo-data";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -118,19 +120,25 @@ export function ConfirmationView({
       return {
         headline: `You're booked for ${formatDayLabel(dayKey, receipt.business.timezone)} at ${dual.customerLabel}`,
         subline: `${receipt.service.name} with ${receipt.staff?.name ?? receipt.business.name} · booked for ${receipt.customer.name}`,
+        firstName: receipt.customer.name.split(" ")[0] ?? receipt.customer.name,
+        heroService: receipt.service.name,
+        heroStaff: receipt.staff?.name ?? "the team",
+        heroDate: formatDayLabel(dayKey, receipt.business.timezone),
+        heroTime: dual.customerLabel,
+        heroTotalCents: receipt.service.priceCents,
+        isDemo: bookingId.startsWith("demo-"),
         lines: [
-          { icon: "service" as const, label: "Service", value: receipt.service.name },
+          { label: "Service", value: receipt.service.name },
           {
-            icon: "staff" as const,
             label: "Staff",
             value: receipt.staff?.name ?? "First available",
           },
+          { label: "Date", value: formatDayLabel(dayKey, receipt.business.timezone) },
           {
-            icon: "datetime" as const,
-            label: "When",
+            label: "Time",
             value: dual.showDual
-              ? `${formatDayLabel(dayKey, receipt.business.timezone)} · ${dual.customerLabel} your time (${dual.businessLabel} business time)`
-              : `${formatDayLabel(dayKey, receipt.business.timezone)} at ${dual.customerLabel}`,
+              ? `${dual.customerLabel} your time (${dual.businessLabel} business time)`
+              : dual.customerLabel,
           },
         ],
         payments: receipt.payments.map((p) => ({
@@ -179,19 +187,25 @@ export function ConfirmationView({
       return {
         headline: `You're booked for ${formatDayLabel(dayKey, snapshot.businessTimezone)} at ${dual.customerLabel}`,
         subline: `${snapshot.serviceName} with ${snapshot.staffName ?? snapshot.businessName} · booked for ${snapshot.customerName}`,
+        firstName: snapshot.customerName.split(" ")[0] ?? snapshot.customerName,
+        heroService: snapshot.serviceName,
+        heroStaff: snapshot.staffName ?? "the team",
+        heroDate: formatDayLabel(dayKey, snapshot.businessTimezone),
+        heroTime: dual.customerLabel,
+        heroTotalCents: snapshot.priceCents,
+        isDemo: bookingId.startsWith("demo-"),
         lines: [
-          { icon: "service" as const, label: "Service", value: snapshot.serviceName },
+          { label: "Service", value: snapshot.serviceName },
           {
-            icon: "staff" as const,
             label: "Staff",
             value: snapshot.staffName ?? "First available",
           },
+          { label: "Date", value: formatDayLabel(dayKey, snapshot.businessTimezone) },
           {
-            icon: "datetime" as const,
-            label: "When",
+            label: "Time",
             value: dual.showDual
-              ? `${formatDayLabel(dayKey, snapshot.businessTimezone)} · ${dual.customerLabel} your time (${dual.businessLabel} business time)`
-              : `${formatDayLabel(dayKey, snapshot.businessTimezone)} at ${dual.customerLabel}`,
+              ? `${dual.customerLabel} your time (${dual.businessLabel} business time)`
+              : dual.customerLabel,
           },
         ],
         payments: snapshot.amountPaidCents > 0
@@ -217,7 +231,7 @@ export function ConfirmationView({
       };
     }
     return null;
-  }, [receipt, snapshot, customerTimezone, token]);
+  }, [receipt, snapshot, customerTimezone, token, bookingId]);
 
   if (!view) {
     if (error) {
@@ -246,15 +260,105 @@ export function ConfirmationView({
   const manageAbsolute =
     typeof window !== "undefined" ? `${window.location.origin}${manageUrl}` : manageUrl;
 
+  const bookingRef = view.isDemo ? DEMO_BOOKING_REF : bookingId.slice(0, 8);
+  const paidCents = view.payments
+    .filter((p) => p.status === "succeeded")
+    .reduce((sum, p) => sum + p.amountCents, 0);
+  const dueLaterCents =
+    view.receiptLines.find((l) => /due at appointment/i.test(l.label))
+      ?.amountCents ?? 0;
+
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-10 pb-16">
-      <div className="flex flex-col items-center text-center">
-        <SuccessCheck />
-        <h1 className="tnum mt-4 text-2xl font-bold tracking-tight sm:text-3xl">
-          {view.headline}
-        </h1>
-        <p className="mt-2 text-[15px] text-muted-foreground">{view.subline}</p>
-      </div>
+      {/* Confirmation hero — the artifact's designed confirmation */}
+      <article className="border border-border bg-card p-6 text-center sm:p-10">
+        <div className="flex flex-col items-center">
+          <SuccessCheck />
+          <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-primary">
+            Booking confirmed
+          </p>
+          <h1 className="tnum mt-2 text-3xl sm:text-4xl">
+            You&apos;re all set, {view.firstName}.
+          </h1>
+          <p className="tnum mx-auto mt-3 max-w-md text-[15px] leading-relaxed text-muted-foreground">
+            Your {view.heroService} with {view.heroStaff} is confirmed for{" "}
+            {view.heroDate} at {view.heroTime}.{" "}
+            {paidCents > 0 ? (
+              <>
+                {formatCents(paidCents)} paid now
+                {dueLaterCents > 0 &&
+                  ` · ${formatCents(dueLaterCents)} due at the appointment`}
+                .
+              </>
+            ) : (
+              <>
+                The total is {formatCents(view.heroTotalCents)}, payable at the
+                visit.
+              </>
+            )}{" "}
+            We sent the appointment details to your email.
+          </p>
+          <div className="mt-5 border-t border-border pt-4">
+            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+              Booking reference
+            </p>
+            <p className="tnum mt-1 font-mono text-sm font-semibold">
+              {bookingRef}
+            </p>
+          </div>
+        </div>
+
+        <h2 className="mt-8 text-left text-lg">What happens next</h2>
+        <div className="mt-3 grid gap-px border border-border bg-border text-left sm:grid-cols-3">
+          <div className="bg-card p-4">
+            <p className="text-sm font-semibold">
+              {view.isDemo ? "Come to 1842 Pine Street" : "Find us"}
+            </p>
+            <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+              {view.isDemo ? (
+                "Harbor & Pine is beside the corner café. The green door opens onto the waiting room."
+              ) : view.businessAddress ? (
+                view.businessAddress
+              ) : (
+                `Ask for directions when you arrive — the team will point you to ${view.heroStaff}.`
+              )}
+            </p>
+          </div>
+          <div className="bg-card p-4">
+            <p className="text-sm font-semibold">Arrive 5 minutes early</p>
+            <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+              Ask for {view.heroStaff} when you arrive. We&apos;ll have your
+              chair ready for {view.heroTime}.
+            </p>
+          </div>
+          <div className="bg-card p-4">
+            <p className="text-sm font-semibold">Plans can change</p>
+            <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+              {view.isDemo ? (
+                "Cancel or move your visit from the secure booking link up to 12 hours before your time."
+              ) : (
+                "Cancel or move your visit from the secure booking link — free cancellation until the cutoff in your confirmation message."
+              )}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+          <AddToCalendarMenu
+            event={{
+              title: view.event.title,
+              description: `Booked via Slotly. Manage: ${manageAbsolute}`,
+              location: view.businessAddress ?? view.businessName,
+              startsAtUtcIso: view.event.startsAtUtcIso,
+              endsAtUtcIso: view.event.endsAtUtcIso,
+              url: manageAbsolute,
+            }}
+          />
+          <Button variant="outline" size="lg" asChild>
+            <Link href={manageUrl}>Manage booking</Link>
+          </Button>
+        </div>
+      </article>
 
       {view.processing && (
         <Alert className="mt-6 border-warning/30 bg-warning/10">
@@ -274,29 +378,12 @@ export function ConfirmationView({
         <ReceiptBlock payments={view.payments} receiptLines={view.receiptLines} />
       </div>
 
-      {/* Calendar capture */}
-      <section aria-label="Add to calendar" className="mt-6">
-        <h2 className="text-sm font-semibold">Add to your calendar</h2>
-        <div className="mt-2">
-          <AddToCalendarMenu
-            event={{
-              title: view.event.title,
-              description: `Booked via Slotly. Manage: ${manageAbsolute}`,
-              location: view.businessAddress ?? view.businessName,
-              startsAtUtcIso: view.event.startsAtUtcIso,
-              endsAtUtcIso: view.event.endsAtUtcIso,
-              url: manageAbsolute,
-            }}
-          />
-        </div>
-      </section>
-
-      {/* What happens next */}
+      {/* Reminders + manage link */}
       <Card className="mt-6">
         <CardContent className="flex flex-col gap-3 p-4">
           <h2 className="flex items-center gap-2 text-sm font-semibold">
             <BellRing className="size-4 text-primary" aria-hidden />
-            What happens next
+            Reminders
           </h2>
           <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted-foreground">
             <li>
@@ -305,10 +392,6 @@ export function ConfirmationView({
             <li>
               A manage-booking link was sent to your email/SMS — use it to
               reschedule or cancel.
-            </li>
-            <li>
-              Free cancellation is available until the business&apos;s cutoff,
-              shown in your confirmation message.
             </li>
           </ul>
           <Separator />
