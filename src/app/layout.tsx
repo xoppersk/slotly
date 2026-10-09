@@ -1,18 +1,38 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Newsreader, Work_Sans, IBM_Plex_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 
 import "./globals.css";
 
 /**
- * Slotly root layout. Inter is loaded via next/font at build time
- * (network available at build). If next/font ever fails in an offline
- * sandbox, fall back to the system font stack declared in globals.css.
+ * Slotly root layout. Type system (Flagship UI Designs · Slotly · System):
+ *  - Newsreader — display / serif warmth (headings, hero copy, summary titles)
+ *  - Work Sans — body text
+ *  - IBM Plex Mono — tabular numerals, prices, booking references
+ * Loaded via next/font at build time (network available at build). If
+ * next/font ever fails in an offline sandbox, the system font stacks
+ * declared in globals.css take over.
  */
-const inter = Inter({
+const newsreader = Newsreader({
   subsets: ["latin"],
-  variable: "--font-inter",
+  style: ["normal", "italic"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-newsreader",
+  display: "swap",
+});
+
+const workSans = Work_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-work-sans",
+  display: "swap",
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-plex-mono",
   display: "swap",
 });
 
@@ -41,7 +61,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.variable} font-[family-name:var(--font-inter)]`}
+        className={`${newsreader.variable} ${workSans.variable} ${plexMono.variable} font-sans`}
       >
         <ThemeProvider
           attribute="class"

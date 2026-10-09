@@ -9,6 +9,9 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
+  --font-display: var(--font-newsreader);
+  --font-sans: var(--font-work-sans);
+  --font-mono: var(--font-plex-mono);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-hover: var(--primary-hover);
@@ -36,6 +39,7 @@
   --color-slot-selected: var(--slot-selected);
   --color-slot-unavailable: var(--slot-unavailable);
   --color-slot-pending: var(--slot-pending);
+  --color-summary: var(--summary);
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
@@ -79,6 +83,9 @@
   --slot-unavailable: #e7e3da; /* taken / closed */
   --slot-pending: #fef3c7; /* held (amber tint) */
 
+  /* Booking summary panel — warm sand surface from the signature UI */
+  --summary: #f5f1e7;
+
   /* Shape */
   --radius: 0.75rem; /* cards; inputs/buttons use radius-md/sm above */
 }
@@ -105,6 +112,7 @@
   --slot-selected: #14a085;
   --slot-unavailable: #44403c;
   --slot-pending: #574410; /* darkened amber tint */
+  --summary: #292524;
   /* status + slot-unavailable text stay readable on dark */
 }
 
@@ -113,13 +121,15 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: "cv11", "ss01";
+    @apply bg-background font-sans text-foreground antialiased;
   }
+  /* Display type: Newsreader serif warmth for every heading. */
   h1,
   h2,
   h3,
   h4 {
+    @apply font-display;
+    font-weight: 600;
     letter-spacing: -0.02em;
   }
   :focus-visible {
