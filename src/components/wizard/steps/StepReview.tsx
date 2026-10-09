@@ -229,33 +229,37 @@ export function StepReview({
         <BookingSummaryCard
           lines={[
             {
-              icon: "service",
               label: "Service",
               value: `${service.name} · ${service.duration_minutes} min`,
             },
             {
-              icon: "staff",
               label: "Staff",
               value:
                 state.staffId === "any" && !staffMember
                   ? "First available"
                   : staffMember?.name ?? "First available",
             },
+            { label: "Date", value: dayLabel },
             {
-              icon: "datetime",
-              label: "When",
+              label: "Time",
               value: dual?.showDual
-                ? `${dayLabel} · ${dual.customerLabel} your time (${dual.businessLabel} business time)`
-                : `${dayLabel} at ${dual?.customerLabel ?? ""}`,
+                ? `${dual.customerLabel} your time (${dual.businessLabel} business time)`
+                : (dual?.customerLabel ?? ""),
             },
             {
-              icon: "policy",
               label: "Cancellation",
               value:
                 "Free cancellation is available until the business's cutoff — the exact window is in your confirmation.",
             },
           ]}
           totalCents={service.price_cents}
+          totalLabel={
+            service.payment_policy === "none"
+              ? "Total · pay at visit"
+              : service.payment_policy === "deposit"
+                ? "Total"
+                : "Total due now"
+          }
         />
       </div>
 

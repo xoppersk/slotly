@@ -216,6 +216,15 @@ export function StepDateTime({
     }
   };
 
+  const firstAvailableLabel = React.useMemo(() => {
+    if (!nextOpenDay || !nextOpenDay.slots[0]) return null;
+    return formatSlotForCustomer(
+      nextOpenDay.slots[0].startsAt,
+      business.timezone,
+      customerTimezone
+    ).customerLabel;
+  }, [nextOpenDay, business.timezone, customerTimezone]);
+
   if (!service) {
     return (
       <Alert variant="destructive">
@@ -229,12 +238,28 @@ export function StepDateTime({
 
   return (
     <div>
-      <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-        Pick a date &amp; time
+      {/* Signature header: business, "Choose a time", service · duration */}
+      <p className="text-xs font-medium text-muted-foreground">
+        {business.name}
+      </p>
+      <h1 className="mt-1 text-[22px] font-semibold sm:text-2xl">
+        Choose a time
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
         {service.name} · {service.duration_minutes} min
       </p>
+
+      {/* First-available shortcut — outlined, directly under the header */}
+      {!loading && !error && firstAvailableLabel && !selectedSlot && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={jumpToFirstAvailable}
+          className="mt-3 border-primary text-primary hover:bg-primary/5 hover:text-primary"
+        >
+          First available · {firstAvailableLabel}
+        </Button>
+      )}
 
       {/* Slot-taken race notice — inline alternatives, never a dead end */}
       {state.slotRaceNotice && (
@@ -465,39 +490,29 @@ export function StepDateTime({
         )}
       </div>
 
-      {/* Empty range */}
+      {/* Empty range — the "Fully booked" designed state */}
       {!loading && !error && days && days.every((d) => d.slots.length === 0) && (
-        <div className="mt-6 rounded-[0.75rem] border border-border bg-card p-6 text-center">
-          <p className="text-[15px] font-semibold">
+        <div className="mt-6 rounded-[0.75rem] border border-border bg-card p-6 text-center sm:p-8">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {formatDayLabel(ymdOf(new Date()), business.timezone)}
+          </p>
+          <h2 className="mt-2 text-xl">
             Nothing free in the next {RANGE_DAYS} days
+          </h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+            Every {service.name} is booked right now. Call us and we&apos;ll
+            find you a time, or check back soon — new times open up regularly.
           </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {business.phone ? (
-              <>
-                Call us at{" "}
-                <a
-                  href={`tel:${business.phone.replace(/[^+\d]/g, "")}`}
-                  className="underline underline-offset-2"
-                >
-                  {business.phone}
-                </a>{" "}
-                and we&apos;ll find you a time.
-              </>
-            ) : (
-              "Please check back soon — new times open up regularly."
-            )}
-          </p>
+          {business.phone && (
+            <Button variant="primary" className="mt-4" asChild>
+              <a href={`tel:${business.phone.replace(/[^+\d]/g, "")}`}>
+                Call {business.name}
+              </a>
+            </Button>
+          )}
         </div>
       )}
 
-      {/* First-available shortcut */}
-      {!loading && !error && nextOpenDay && !selectedSlot && (
-        <div className="mt-6 flex justify-center">
-          <Button variant="outline" onClick={jumpToFirstAvailable}>
-            Jump to first available
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
