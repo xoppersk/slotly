@@ -87,7 +87,8 @@ export default function SignInPage() {
       <CardContent className="p-6">
         <h1 className="text-xl font-semibold tracking-tight">Sign in</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Welcome back to your booking business.
+          Securely return to your booking page and continue exactly where
+          you left off.
         </p>
 
         {error && (
