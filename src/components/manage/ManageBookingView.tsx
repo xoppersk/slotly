@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CalendarClock,
@@ -23,6 +24,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Separator } from "@/components/ui/separator";
 import { formatCents } from "@/lib/format";
 import { formatSlotForCustomer, formatDayLabel } from "@/lib/availability";
+import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import {
   apiJson,
   isValidTokenShape,
@@ -126,6 +128,33 @@ export function ManageBookingView({ token }: { token: string }) {
     [loadReceipt, router]
   );
 
+  // Resolve the public slug for the "Book another visit" action on the
+  // cancelled state (the receipt payload carries no slug). These hooks sit
+  // above every early return; the effect no-ops until the receipt arrives.
+  const [businessSlug, setBusinessSlug] = React.useState<string | null>(null);
+  const receiptBusinessId = receipt?.business.id ?? null;
+  const receiptCancelled = receipt?.booking.status === "cancelled";
+  React.useEffect(() => {
+    if (!receiptCancelled || !receiptBusinessId) return;
+    let alive = true;
+    (async () => {
+      try {
+        const { data } = await createBrowserClient()
+          .from("businesses_public")
+          .select("slug")
+          .eq("id", receiptBusinessId)
+          .single();
+        if (alive && data)
+          setBusinessSlug((data as { slug: string }).slug);
+      } catch {
+        /* slug stays unresolved — the copy still reads correctly */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [receiptCancelled, receiptBusinessId]);
+
   if (expired) {
     return (
       <div className="mx-auto w-full max-w-lg px-4 py-16">
@@ -209,18 +238,17 @@ export function ManageBookingView({ token }: { token: string }) {
       <div className="mt-4">
         <BookingSummaryCard
           lines={[
-            { icon: "service", label: "Service", value: service.name },
+            { label: "Service", value: service.name },
             {
-              icon: "staff",
               label: "Staff",
               value: staff?.name ?? "First available",
             },
+            { label: "Date", value: formatDayLabel(dayKey, business.timezone) },
             {
-              icon: "datetime",
-              label: "When",
+              label: "Time",
               value: dual.showDual
-                ? `${formatDayLabel(dayKey, business.timezone)} · ${dual.customerLabel} your time (${dual.businessLabel} business time)`
-                : `${formatDayLabel(dayKey, business.timezone)} at ${dual.customerLabel}`,
+                ? `${dual.customerLabel} your time (${dual.businessLabel} business time)`
+                : dual.customerLabel,
             },
           ]}
         />
@@ -251,10 +279,17 @@ export function ManageBookingView({ token }: { token: string }) {
 
       {cancelled && (
         <Alert className="mt-6">
-          <AlertTitle>This booking was cancelled</AlertTitle>
+          <AlertTitle>Your appointment has been cancelled.</AlertTitle>
           <AlertDescription>
-            The time slot has been released. Book again from the business page
-            if you&apos;d like a new appointment.
+            Nothing is owed. If you would still like to visit {business.name},
+            choose another time with any available team member.
+            {businessSlug && (
+              <span className="mt-3 block">
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/${businessSlug}`}>Book another visit</Link>
+                </Button>
+              </span>
+            )}
           </AlertDescription>
         </Alert>
       )}
