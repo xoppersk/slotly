@@ -153,18 +153,17 @@ export function BookingWizard({
       : null;
 
   const summaryLines = React.useMemo(() => {
-    const lines: { icon?: "service" | "staff" | "datetime" | "policy"; label: string; value: string }[] = [];
+    const lines: { label: string; value: string }[] = [];
     if (service) {
       lines.push({
-        icon: "service",
         label: "Service",
-        value: `${service.name} · ${service.duration_minutes} min`,
+        value: service.name,
       });
     }
     if (state.staffId === "any") {
-      lines.push({ icon: "staff", label: "Staff", value: "First available" });
+      lines.push({ label: "Staff", value: "First available" });
     } else if (staffMember) {
-      lines.push({ icon: "staff", label: "Staff", value: staffMember.name });
+      lines.push({ label: "Staff", value: staffMember.name });
     }
     if (state.slot) {
       const dual = formatSlotForCustomer(
@@ -173,29 +172,27 @@ export function BookingWizard({
         customerTimezone
       );
       const dayLabel = formatDayLabel(state.dayKey ?? "", business.timezone);
+      lines.push({ label: "Date", value: dayLabel });
       lines.push({
-        icon: "datetime",
-        label: "When",
+        label: "Time",
         value: dual.showDual
-          ? `${dayLabel} · ${dual.customerLabel} your time (${dual.businessLabel} business time)`
-          : `${dayLabel} at ${dual.customerLabel}`,
-      });
-    }
-    if (state.payment && state.payment.amountDueKind) {
-      lines.push({
-        icon: "policy",
-        label: "Payment",
-        value: `${formatCents(state.payment.amountDueCents)} due now`,
-      });
-    } else if (service && service.payment_policy === "none") {
-      lines.push({
-        icon: "policy",
-        label: "Payment",
-        value: `${formatCents(service.price_cents)} due at appointment`,
+          ? `${dual.customerLabel} your time (${dual.businessLabel} business time)`
+          : dual.customerLabel,
       });
     }
     return lines;
   }, [service, state, staffMember, business.timezone, customerTimezone]);
+
+  const summaryTotalLabel = React.useMemo(() => {
+    if (state.payment && state.payment.amountDueKind === "deposit") {
+      return `Deposit due now · ${formatCents(
+        (service?.price_cents ?? 0) - state.payment.amountDueCents
+      )} at appointment`;
+    }
+    if (service?.payment_policy === "full") return "Total due now";
+    if (service?.payment_policy === "deposit") return "Deposit due now";
+    return "Total · pay at visit";
+  }, [service, state.payment]);
 
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
@@ -264,6 +261,17 @@ export function BookingWizard({
               <BookingSummaryCard
                 lines={summaryLines}
                 totalCents={service ? service.price_cents : null}
+                totalLabel={summaryTotalLabel}
+                action={
+                  primary
+                    ? {
+                        label: primary.label,
+                        onClick: primary.onClick,
+                        disabled: primary.disabled,
+                        loading: primary.loading,
+                      }
+                    : undefined
+                }
               />
             ) : (
               <div className="rounded-[0.75rem] border border-dashed border-border p-6 text-center">
