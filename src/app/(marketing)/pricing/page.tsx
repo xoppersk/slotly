@@ -27,7 +27,7 @@ const PLANS = [
       "Email confirmations + reminders",
       "Deposits via Stripe (test mode)",
     ],
-    cta: "Start free trial",
+    cta: "Choose plan",
     featured: false,
   },
   {
@@ -43,7 +43,7 @@ const PLANS = [
       "No-show tracking",
       "Waitlist for fully-booked days",
     ],
-    cta: "Start free trial",
+    cta: "Choose plan",
     featured: true,
   },
   {
@@ -58,7 +58,7 @@ const PLANS = [
       "Priority support",
       "Custom domain (book.yourbusiness.com)",
     ],
-    cta: "Talk to us",
+    cta: "Choose plan",
     featured: false,
   },
 ];
@@ -75,13 +75,13 @@ export default function PricingPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">
           Pricing
         </p>
-        <h1 className="mt-3 max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">
-          One plan per business. No per-booking fees.
+        <h1 className="mt-3 max-w-2xl text-3xl sm:text-4xl">
+          A plan that grows with the work.
         </h1>
         <p className="mt-3 max-w-xl text-lg text-muted-foreground">
-          Every plan includes unlimited bookings, your public booking page, and
-          the full 6-step customer wizard. Start with a 14-day free trial —
-          no card required.
+          Every plan includes unlimited bookings, your public booking page,
+          and the full customer booking flow. Start with a 14-day free
+          trial — no card required.
         </p>
 
         <div className="mt-10 grid gap-4 md:grid-cols-3">
