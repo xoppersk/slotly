@@ -50,13 +50,16 @@ export default async function TodayPage({ searchParams }: TodayPageProps) {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            {formatDateLong(`${dateKey}T12:00:00Z`, tz)}
+          </p>
+          <h1 className="mt-1 text-3xl">
             {greetingForHour(hour)}
             {isStaff ? "" : `, ${business.name}`}
           </h1>
-          <p className="text-sm text-muted-foreground">
-            {isStaff ? "Your day" : "Today's agenda"} ·{" "}
-            {formatDateLong(`${dateKey}T12:00:00Z`, tz)}
+          <p className="mt-1 text-sm text-muted-foreground">
+            {isStaff ? "Your day" : "Today's agenda"} — the next booking is
+            always at the top.
           </p>
         </div>
         <div className="flex items-center gap-1">
@@ -73,6 +76,9 @@ export default async function TodayPage({ searchParams }: TodayPageProps) {
             <Link href={`/dashboard?date=${addDaysYmd(dateKey, 1)}`}>
               <ChevronRight className="size-4" aria-hidden />
             </Link>
+          </Button>
+          <Button variant="primary" asChild className="ml-1">
+            <Link href="/dashboard/bookings">New booking</Link>
           </Button>
         </div>
       </header>
