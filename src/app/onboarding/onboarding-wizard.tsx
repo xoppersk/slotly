@@ -315,13 +315,13 @@ export function OnboardingWizard() {
           variant="ghost"
           onClick={() => setStep((s) => Math.max(s - 1, 0))}
           disabled={step === 0 || publishing}
-          className="gap-1.5"
+          className="gap-1.5 max-sm:min-h-11"
         >
           <ArrowLeft className="size-4" aria-hidden />
           Back
         </Button>
         {step < STEPS.length - 1 ? (
-          <Button onClick={next} className="gap-1.5">
+          <Button onClick={next} className="gap-1.5 max-sm:min-h-11">
             Continue
             <ArrowRight className="size-4" aria-hidden />
           </Button>
