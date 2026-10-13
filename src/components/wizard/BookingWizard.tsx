@@ -9,7 +9,17 @@ import { formatCents } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BookingSummaryCard } from "@/components/booking/BookingSummaryCard";
-import { formatSlotForCustomer, formatDayLabel } from "@/lib/availability";
+import {
+  formatSlotForCustomer,
+  formatDualTimeSummary,
+  formatDayLabelLong,
+} from "@/lib/availability";
+import {
+  DEMO_SIGNATURE_DAY,
+  demoBooking,
+  demoServices,
+  demoStaff,
+} from "@/lib/demo-data";
 import { WizardProgress } from "./WizardProgress";
 import { StepService } from "./steps/StepService";
 import { StepStaff } from "./steps/StepStaff";
@@ -47,11 +57,19 @@ export interface StepProps {
   setPrimary: (action: PrimaryAction | null) => void;
   preselect: { serviceId: string | null; staffId: string | null };
   customerTimezone: string;
+  /**
+   * True when the wizard runs on the synthetic demo business (the design
+   * truth ledger) rather than live database rows. The datetime step anchors
+   * its week to the signature week and boots the signature selection.
+   */
+  demoMode: boolean;
 }
 
 interface BookingWizardProps extends WizardContext {
   slug: string;
   preselect: { serviceId: string | null; staffId: string | null };
+  /** See StepProps.demoMode. Only true for the synthetic demo business. */
+  demoMode?: boolean;
 }
 
 function stepsForPaymentPolicy(policy: string): WizardStepId[] {
@@ -65,6 +83,7 @@ export function BookingWizard({
   staff,
   slug,
   preselect,
+  demoMode = false,
 }: BookingWizardProps) {
   const ctx: WizardContext = { business, services, staff };
   const customerTimezone = React.useMemo(
@@ -75,15 +94,41 @@ export function BookingWizard({
   const [state, setState] = React.useState<WizardState>(() => {
     // Single-staff businesses auto-skip the staff step with a note.
     const singleStaff = staff.length === 1 ? staff[0]?.id ?? null : null;
-    return {
+    const base: WizardState = {
       ...INITIAL_STATE,
       serviceId: preselect.serviceId,
       staffId: preselect.staffId ?? singleStaff,
       details: { ...EMPTY_DETAILS },
     };
+    // Demo signature boot: the synthetic demo business opens on the
+    // signature state from the Flagship UI Designs artifact — service and
+    // staff chosen, signature day + 9:00 AM slot selected — unless the
+    // visitor deep-linked a different service/staff (?service=, ?staff=).
+    if (demoMode && !preselect.serviceId && !preselect.staffId) {
+      const haircut =
+        services.find((s) => s.name === demoServices[0]!.name) ?? null;
+      const micah = staff.find((m) => m.name === demoStaff[0]!.name) ?? null;
+      const slotStaffId = micah?.id ?? preselect.staffId ?? singleStaff ?? "";
+      const startsAt = demoBooking.startsAtUtc;
+      const endsAt = new Date(
+        Date.parse(startsAt) + demoBooking.serviceDurationMin * 60_000
+      ).toISOString();
+      return {
+        ...base,
+        serviceId: haircut?.id ?? base.serviceId,
+        staffId: micah?.id ?? base.staffId,
+        dayKey: DEMO_SIGNATURE_DAY,
+        slot: { startsAt, endsAt, staffId: slotStaffId },
+      };
+    }
+    return base;
   });
   const [stepIndex, setStepIndex] = React.useState(() =>
-    preselect.serviceId ? 1 : 0
+    demoMode && !preselect.serviceId && !preselect.staffId
+      ? 2
+      : preselect.serviceId
+        ? 1
+        : 0
   );
   const [primary, setPrimary] = React.useState<PrimaryAction | null>(null);
 
@@ -125,6 +170,7 @@ export function BookingWizard({
     setPrimary,
     preselect,
     customerTimezone,
+    demoMode,
   };
 
   // Changing the service resets downstream selections (new slot engine inputs).
@@ -153,7 +199,7 @@ export function BookingWizard({
       : null;
 
   const summaryLines = React.useMemo(() => {
-    const lines: { label: string; value: string }[] = [];
+    const lines: { label: string; value: string; accent?: boolean }[] = [];
     if (service) {
       lines.push({
         label: "Service",
@@ -171,13 +217,16 @@ export function BookingWizard({
         business.timezone,
         customerTimezone
       );
-      const dayLabel = formatDayLabel(state.dayKey ?? "", business.timezone);
+      const dayLabel = formatDayLabelLong(
+        state.dayKey ?? "",
+        business.timezone
+      );
       lines.push({ label: "Date", value: dayLabel });
       lines.push({
         label: "Time",
-        value: dual.showDual
-          ? `${dual.customerLabel} your time (${dual.businessLabel} business time)`
-          : dual.customerLabel,
+        value: formatDualTimeSummary(dual),
+        // The signature UI renders the selected time in deep teal.
+        accent: true,
       });
     }
     return lines;
