@@ -15,6 +15,11 @@ import { Button } from "@/components/ui/button";
 export interface BookingSummaryLine {
   label: string;
   value: string;
+  /**
+   * Render the value in the primary (deep teal) color — the signature UI's
+   * `.summary-time` treatment for the selected time.
+   */
+  accent?: boolean;
 }
 
 interface BookingSummaryCardProps {
@@ -53,26 +58,31 @@ export function BookingSummaryCard({
         className
       )}
     >
-      <h4 className="border-b border-border pb-4 text-[22px] font-semibold">
+      <h4 className="border-b border-summary-line pb-4 text-[22px] font-semibold">
         {title}
       </h4>
       <dl>
         {lines.map((line, i) => (
           <div
             key={`${line.label}-${i}`}
-            className="border-b border-border py-3 last:border-b-0"
+            className="border-b border-summary-line py-3 last:border-b-0"
           >
             <dt className="text-xs text-muted-foreground">{line.label}</dt>
-            <dd className="tnum mt-0.5 text-[15px] font-semibold text-foreground">
+            <dd
+              className={cn(
+                "tnum mt-0.5 text-[15px] font-semibold text-foreground",
+                line.accent && "text-primary"
+              )}
+            >
               {line.value}
             </dd>
           </div>
         ))}
       </dl>
       {totalCents !== null && (
-        <div className="flex items-baseline justify-between border-t border-border py-3">
+        <div className="flex items-baseline justify-between border-t border-summary-line py-3">
           <span className="text-sm text-muted-foreground">{totalLabel}</span>
-          <strong className="font-mono text-[15px] font-semibold text-foreground">
+          <strong className="tnum font-mono text-[13px] font-semibold text-foreground">
             {formatCents(totalCents, currency)}
           </strong>
         </div>
