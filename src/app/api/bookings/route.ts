@@ -88,7 +88,7 @@ function demoCreateBooking({
   const localDate = startsAt.slice(0, 10);
   const day = demoAvailability(localDate, localDate, staff.id)[0];
   const slotOk = day?.slots.some(
-    (s) => s.startsAt === startsAt && s.endsAt === endsAt,
+    (s) => !s.taken && s.startsAt === startsAt && s.endsAt === endsAt,
   );
   if (!slotOk) {
     return jsonError(
