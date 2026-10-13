@@ -42,7 +42,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   // Demo fallback: the Harbor & Pine demo business has no live database
   // row, so its slot grid is synthesized from the design truth ledger
-  // (the signature day reproduces the artifact's exact slot layout).
+  // (the signature day reproduces the artifact's exact slot layout,
+  // taken pills included — they render disabled, like the artifact).
   if (businessId === DEMO_BUSINESS_ID) {
     const staff = demoStaff.find((m) => m.id === staffId) ?? demoStaff[0]!;
     const days = demoAvailability(from, to, staff.id);
@@ -54,15 +55,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           slug: demoBusiness.slug,
           timezone: demoBusiness.timezone,
         },
-        days: days.map((d) => ({
-          date: d.date,
-          status: d.closed
-            ? "closed"
-            : d.slots.length === 0
-              ? "fully_booked"
-              : "open",
-          slots: d.slots,
-        })),
+        days: days.map((d) => {
+          const bookable = d.slots.filter((s) => !s.taken);
+          return {
+            date: d.date,
+            status: d.closed
+              ? "closed"
+              : bookable.length === 0
+                ? "fully_booked"
+                : "open",
+            slots: d.slots.map((s) => ({
+              startsAt: s.startsAt,
+              endsAt: s.endsAt,
+              staffId: s.staffId,
+              ...(s.taken ? { taken: true } : {}),
+            })),
+          };
+        }),
       },
       { headers: { "Cache-Control": "public, max-age=60" } },
     );
