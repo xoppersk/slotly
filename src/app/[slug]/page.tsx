@@ -154,9 +154,9 @@ export default async function BusinessPage({
                 {business.name}
               </h1>
               {business.address && (
-                <p className="mt-1 flex items-center gap-1.5 text-sm text-white/90">
-                  <MapPin className="size-3.5 shrink-0" aria-hidden />
-                  <span className="truncate">{business.address}</span>
+                <p className="mt-1 flex items-start gap-1.5 text-sm text-white/90 sm:items-center">
+                  <MapPin className="mt-0.5 size-3.5 shrink-0 sm:mt-0" aria-hidden />
+                  <span className="sm:truncate">{business.address}</span>
                 </p>
               )}
               {business.phone && (
@@ -234,7 +234,7 @@ export default async function BusinessPage({
                             {service.name}
                           </h3>
                           {service.description && (
-                            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                            <p className="mt-1 text-sm text-muted-foreground">
                               {service.description}
                             </p>
                           )}
@@ -275,7 +275,7 @@ export default async function BusinessPage({
               Meet the team
             </h2>
             <div
-              className="-mx-4 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2"
+              className="-mx-4 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 max-sm:[mask-image:linear-gradient(to_right,black_calc(100%-2.5rem),transparent)]"
               role="list"
             >
               {staff.map((member) => (
@@ -354,8 +354,8 @@ export default async function BusinessPage({
                 </div>
               </div>
               <Separator />
-              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Users className="size-3.5" aria-hidden />
+              <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                <Users className="mt-0.5 size-3.5 shrink-0" aria-hidden />
                 Times are shown in your local timezone when it differs from the
                 business&apos;s ({business.timezone}).
               </p>
@@ -364,8 +364,9 @@ export default async function BusinessPage({
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border bg-card">
+      {/* Footer — mobile bottom padding clears the fixed booking bar
+          (bar is sm:hidden), so the attribution lines are never hidden. */}
+      <footer className="border-t border-border bg-card pb-24 sm:pb-0">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-1 px-4 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <p className="font-medium text-foreground">{business.name}</p>
           <p>
