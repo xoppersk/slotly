@@ -100,7 +100,7 @@ export default function SignInPage() {
 
         <Button
           variant="outline"
-          className="mt-5 w-full"
+          className="mt-5 w-full max-sm:min-h-11"
           disabled={oauthBusy || busy}
           onClick={signInWithGoogle}
         >
@@ -147,7 +147,7 @@ export default function SignInPage() {
                 </FormItem>
               )}
             />
-            <Button variant="primary" type="submit" disabled={busy} className="w-full">
+            <Button variant="primary" type="submit" disabled={busy} className="w-full max-sm:min-h-11">
               {busy ? "Signing in…" : "Sign in"}
             </Button>
           </form>
@@ -155,7 +155,7 @@ export default function SignInPage() {
 
         <p className="mt-5 text-center text-sm text-muted-foreground">
           New to Slotly?{" "}
-          <Link href="/auth/sign-up" className="font-medium text-primary hover:underline">
+          <Link href="/auth/sign-up" className="font-medium text-primary hover:underline max-sm:inline-block max-sm:py-3.5">
             Create an account
           </Link>
         </p>
