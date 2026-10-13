@@ -115,7 +115,13 @@ export function StepService({ ctx, state, update, onNext, setPrimary }: StepProp
                           : "bg-primary/10 text-primary"
                       )}
                       style={
-                        service.color
+                        // The per-service tint applies to the unselected tile
+                        // only — on the selected tile it would paint the
+                        // initial in the service color over the solid
+                        // primary fill (tone-on-tone). Selected keeps the
+                        // designed treatment: bg-primary +
+                        // text-primary-foreground from the classes above.
+                        !selected && service.color
                           ? { backgroundColor: `${service.color}1A`, color: service.color }
                           : undefined
                       }
@@ -137,7 +143,7 @@ export function StepService({ ctx, state, update, onNext, setPrimary }: StepProp
                         </span>
                       </p>
                       {service.description && (
-                        <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
+                        <p className="mt-1 text-sm text-muted-foreground">
                           {service.description}
                         </p>
                       )}

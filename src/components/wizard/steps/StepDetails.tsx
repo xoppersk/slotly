@@ -65,7 +65,7 @@ const detailsSchema = z
  * by phone via GET /api/customers/lookup and get a "Welcome back" pre-fill
  * banner with a "Not you? Clear" action.
  */
-export function StepDetails({ ctx, state, update, setPrimary }: StepProps) {
+export function StepDetails({ ctx, state, update, onNext, setPrimary }: StepProps) {
   const { business, services } = ctx;
   const service = services.find((s) => s.id === state.serviceId);
   const [lookupName, setLookupName] = React.useState<string | null>(null);
@@ -105,15 +105,15 @@ export function StepDetails({ ctx, state, update, setPrimary }: StepProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watchedName, watchedPhone, watchedEmail, watchedNotes]);
 
-  const onNext = () => {
+  const handleContinue = () => {
     form.handleSubmit(() => {
       // Values are already synced via the watcher; advance.
-      // (Validation gates the footer button, so this always succeeds.)
+      onNext();
     })();
   };
 
   React.useEffect(() => {
-    setPrimary({ label: "Continue", onClick: onNext, disabled: !isValid });
+    setPrimary({ label: "Continue", onClick: handleContinue, disabled: !isValid });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isValid]);
 

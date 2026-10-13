@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { formatCents } from "@/lib/format";
 import { amountDueNow } from "@/lib/payments/policy";
-import { formatSlotForCustomer, formatDayLabel } from "@/lib/availability";
+import { formatSlotForCustomer, formatDualTimeSummary, formatDayLabelLong } from "@/lib/availability";
 import {
   apiJson,
   ApiError,
@@ -73,7 +73,7 @@ export function StepReview({
     ? formatSlotForCustomer(slot.startsAt, business.timezone, customerTimezone)
     : null;
   const dayLabel = state.dayKey
-    ? formatDayLabel(state.dayKey, business.timezone)
+    ? formatDayLabelLong(state.dayKey, business.timezone)
     : "";
 
   const buildSnapshot = React.useCallback(
@@ -159,7 +159,7 @@ export function StepReview({
           slot: null,
           slotRaceNotice: {
             missedStartsAt: slot.startsAt,
-            message: "That slot just filled — here are the closest times.",
+            message: "Someone booked that time just ahead of you. Your details are saved \u2014 pick another opening below.",
           },
         });
         const datetimeIndex = steps.indexOf("datetime");
@@ -242,9 +242,8 @@ export function StepReview({
             { label: "Date", value: dayLabel },
             {
               label: "Time",
-              value: dual?.showDual
-                ? `${dual.customerLabel} your time (${dual.businessLabel} business time)`
-                : (dual?.customerLabel ?? ""),
+              value: dual ? formatDualTimeSummary(dual) : "",
+              accent: true,
             },
             {
               label: "Cancellation",
