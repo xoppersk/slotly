@@ -35,11 +35,13 @@
   --color-warning: var(--warning);
   --color-destructive: var(--destructive);
   --color-info: var(--info);
+  --color-soft: var(--soft);
   --color-slot-available: var(--slot-available);
   --color-slot-selected: var(--slot-selected);
   --color-slot-unavailable: var(--slot-unavailable);
   --color-slot-pending: var(--slot-pending);
   --color-summary: var(--summary);
+  --color-summary-line: var(--summary-line);
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
@@ -77,6 +79,9 @@
   --destructive: #dc2626;
   --info: #0284c7;
 
+  /* Soft tinted background (palette "Soft bg") — first-available / info surfaces */
+  --soft: #d9f1eb;
+
   /* Slot pill states */
   --slot-available: #ffffff; /* outline pill on card */
   --slot-selected: #0e7c6b; /* primary fill */
@@ -85,6 +90,8 @@
 
   /* Booking summary panel — warm sand surface from the signature UI */
   --summary: #f5f1e7;
+  /* Signature hairline dividers inside the summary panel */
+  --summary-line: #cbc6ba;
 
   /* Shape */
   --radius: 0.75rem; /* cards; inputs/buttons use radius-md/sm above */
