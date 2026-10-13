@@ -66,12 +66,25 @@ describe("demo truth ledger", () => {
     const labels = (day?.slots ?? []).map((s) =>
       new Date(s.startsAt).toISOString().slice(11, 16),
     );
-    // 9:00 AM EDT = 13:00 UTC; the two taken pills stay out of the grid.
-    expect(labels).toContain("13:00");
-    expect(labels).toContain("13:45");
-    expect(labels).not.toContain("14:30");
-    expect(labels).not.toContain("20:30");
-    expect(labels).toContain("21:15");
+    // 9:00 AM EDT = 13:00 UTC. All ten artifact pills are present —
+    // including the two taken ones, flagged for disabled rendering.
+    expect(labels).toEqual([
+      "13:00",
+      "13:45",
+      "14:30",
+      "15:15",
+      "16:45",
+      "17:30",
+      "18:15",
+      "19:45",
+      "20:30",
+      "21:15",
+    ]);
+    const taken = (day?.slots ?? []).filter((s) => s.taken);
+    expect(
+      taken.map((s) => new Date(s.startsAt).toISOString().slice(11, 16)),
+    ).toEqual(["14:30", "20:30"]);
+    expect((day?.slots ?? []).filter((s) => !s.taken)).toHaveLength(8);
     // Slots carry the staff id and 45-minute duration.
     for (const s of day?.slots ?? []) {
       expect(s.staffId).toBe(micah);

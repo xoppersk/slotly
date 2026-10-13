@@ -411,9 +411,9 @@ export function demoPublicData(): {
 /**
  * The signature prototype's exact slot layout for Thursday, October 8,
  * 2026 (Signature haircut · Micah). Business-local times; `taken` slots
- * render as unavailable pills.
+ * render as disabled (strikethrough) pills, exactly like the artifact.
  */
-const DEMO_SIGNATURE_DAY = "2026-10-08";
+export const DEMO_SIGNATURE_DAY = "2026-10-08";
 const DEMO_SIGNATURE_SLOTS: { time: string; taken: boolean }[] = [
   { time: "09:00", taken: false },
   { time: "09:45", taken: false },
@@ -448,6 +448,8 @@ export interface DemoSyntheticSlot {
   startsAt: string;
   endsAt: string;
   staffId: string;
+  /** True when the slot is taken — renders as a disabled pill. */
+  taken?: boolean;
 }
 
 /**
@@ -455,7 +457,9 @@ export interface DemoSyntheticSlot {
  * business-local date keys (inclusive), in the shape the wizard's
  * StepDateTime consumes. Slots are 45 minutes, 9:00 AM–5:15 PM on open
  * days. The signature day (2026-10-08) reproduces the design artifact's
- * exact slot layout; other days get a stable deterministic pattern.
+ * exact slot layout, taken pills included (they render disabled, exactly
+ * like the artifact's signature screen); other days get a stable
+ * deterministic pattern.
  */
 export function demoAvailability(
   fromKey: string,
@@ -471,29 +475,36 @@ export function demoAvailability(
       out.push({ date: key, slots: [], closed: true });
       continue;
     }
-    const times: string[] =
+    const times: { time: string; taken: boolean }[] =
       key === DEMO_SIGNATURE_DAY
-        ? DEMO_SIGNATURE_SLOTS.filter((s) => !s.taken).map((s) => s.time)
+        ? DEMO_SIGNATURE_SLOTS
         : (() => {
-            const list: string[] = [];
+            const list: { time: string; taken: boolean }[] = [];
             for (let h = 9; h <= 17; h++) {
               for (const m of h === 17 ? [15] : [0, 45]) {
                 if (h === 9 && m === 45) continue; // keep the grid airy
                 const t = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
                 // Deterministic "taken" pattern — roughly 1 in 4 slots.
+                // (Non-signature days drop taken slots, like the live
+                // engine; only the signature day shows disabled pills.)
                 if (hash01(`${key}|${t}`) < 0.24) continue;
-                list.push(t);
+                list.push({ time: t, taken: false });
               }
             }
             return list;
           })();
-    const slots = times.map((t) => {
+    const slots = times.map(({ time: t, taken }) => {
       const [h, m] = t.split(":").map(Number);
       // Business-local times; America/New_York is UTC-4 (EDT) in this window.
       const [yy = 2026, mm = 10, dd = 8] = key.split("-").map(Number);
       const s = new Date(Date.UTC(yy, mm - 1, dd, (h ?? 0) + 4, m ?? 0, 0));
       const e = new Date(s.getTime() + 45 * 60_000);
-      return { startsAt: s.toISOString(), endsAt: e.toISOString(), staffId };
+      return {
+        startsAt: s.toISOString(),
+        endsAt: e.toISOString(),
+        staffId,
+        taken,
+      };
     });
     out.push({ date: key, slots, closed: false });
   }
