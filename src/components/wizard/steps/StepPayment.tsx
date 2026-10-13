@@ -160,7 +160,7 @@ export function StepPayment({
             slot: null,
             slotRaceNotice: {
               missedStartsAt: slot.startsAt,
-              message: "That slot just filled — here are the closest times.",
+              message: "Someone booked that time just ahead of you. Your details are saved \u2014 pick another opening below.",
             },
           });
           const datetimeIndex = steps.indexOf("datetime");

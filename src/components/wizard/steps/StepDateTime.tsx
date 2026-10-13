@@ -11,6 +11,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { SlotPill } from "@/components/booking/SlotPill";
 import { WeekStrip, type WeekStripDay } from "@/components/booking/WeekStrip";
 import { TimezoneBanner } from "@/components/booking/TimezoneBanner";
+import { formatInTimeZone } from "date-fns-tz";
 import {
   apiJson,
   pickNearestAlternatives,
@@ -22,6 +23,7 @@ import {
   formatSlotForCustomer,
   formatDayLabel,
 } from "@/lib/availability";
+import { DEMO_SIGNATURE_DAY } from "@/lib/demo-data";
 
 import type { StepProps } from "../BookingWizard";
 
@@ -44,7 +46,8 @@ function dateFromYmd(dateYmd: string): Date {
 
 function groupLabel(hour: number): string {
   if (hour < 12) return "Morning";
-  if (hour < 17) return "Afternoon";
+  // The signature UI groups 5:15 PM under Afternoon.
+  if (hour < 18) return "Afternoon";
   return "Evening";
 }
 
@@ -64,6 +67,7 @@ export function StepDateTime({
   onNext,
   setPrimary,
   customerTimezone,
+  demoMode,
 }: StepProps) {
   const { business, services } = ctx;
   const service = services.find((s) => s.id === state.serviceId);
@@ -99,8 +103,11 @@ export function StepDateTime({
   React.useEffect(() => {
     if (!currentService) return;
     let cancelled = false;
-    const from = new Date();
-    const to = new Date();
+    // The demo business is frozen on the design truth ledger: its week is
+    // anchored to the signature week (Sun Oct 4 – Sat Oct 10, 2026) no
+    // matter what today is, so the signature screen renders 1:1.
+    const from = demoMode ? new Date(2026, 9, 4) : new Date();
+    const to = new Date(from);
     to.setDate(to.getDate() + RANGE_DAYS);
     const params = new URLSearchParams({
       businessId: business.id,
@@ -130,11 +137,15 @@ export function StepDateTime({
   }, [queryKey]);
 
   // Default to the first open day once data arrives (derived, not stored).
+  // The demo business defaults to the signature day from the artifact.
+  const hasBookable = (d: ApiDayAvailability) =>
+    d.slots.some((s) => !s.taken);
   const firstOpenDate = React.useMemo(
-    () => days?.find((d) => d.slots.length > 0)?.date ?? null,
+    () => days?.find(hasBookable)?.date ?? null,
     [days]
   );
-  const effectiveDayKey = state.dayKey ?? firstOpenDate;
+  const effectiveDayKey =
+    state.dayKey ?? (demoMode ? DEMO_SIGNATURE_DAY : null) ?? firstOpenDate;
 
   React.useEffect(() => {
     setPrimary(
@@ -162,16 +173,23 @@ export function StepDateTime({
     return list.slice(weekStart, weekStart + 7).map((d) => ({
       date: dateFromYmd(d.date),
       status:
-        d.status === "closed" ? "closed" : d.slots.length === 0 ? "full" : "available",
+        d.status === "closed"
+          ? "closed"
+          : d.status === "fully_booked" || !hasBookable(d)
+            ? "full"
+            : "available",
     }));
   }, [days, weekStart]);
 
   const selectedDate = effectiveDayKey ? dateFromYmd(effectiveDayKey) : null;
 
+  // The "next opening" target. For the demo business this is the
+  // signature day (the artifact's "First available · 9:00 AM").
   const nextOpenDay = React.useMemo(() => {
     const list = days ?? [];
-    return list.find((d) => d.slots.length > 0) ?? null;
-  }, [days]);
+    if (demoMode) return list.find((d) => d.date === DEMO_SIGNATURE_DAY) ?? null;
+    return list.find(hasBookable) ?? null;
+  }, [days, demoMode]);
 
   const selectDay = (day: ApiDayAvailability) => {
     update({ dayKey: day.date, slot: null, slotRaceNotice: null });
@@ -189,7 +207,10 @@ export function StepDateTime({
     if (!selectedDay) return [];
     const groups = new Map<string, ApiSlot[]>();
     for (const slot of selectedDay.slots) {
-      const localHour = new Date(slot.startsAt).getHours();
+      // Group by the business-local hour, not the browser's.
+      const localHour = Number(
+        formatInTimeZone(slot.startsAt, business.timezone, "H")
+      );
       const label = groupLabel(localHour);
       const arr = groups.get(label) ?? [];
       arr.push(slot);
@@ -198,7 +219,7 @@ export function StepDateTime({
     return ["Morning", "Afternoon", "Evening"].flatMap((label) =>
       groups.has(label) ? [{ label, slots: groups.get(label)! }] : []
     );
-  }, [selectedDay]);
+  }, [selectedDay, business.timezone]);
 
   const alternatives = React.useMemo(() => {
     if (!state.slotRaceNotice || !days) return [];
@@ -210,16 +231,19 @@ export function StepDateTime({
   };
 
   const jumpToFirstAvailable = () => {
-    if (nextOpenDay) {
-      selectDay(nextOpenDay);
-      if (nextOpenDay.slots[0]) selectSlot(nextOpenDay.slots[0]);
-    }
+    if (!nextOpenDay) return;
+    const first =
+      nextOpenDay.slots.find((s) => !s.taken) ?? nextOpenDay.slots[0];
+    selectDay(nextOpenDay);
+    if (first) selectSlot(first);
   };
 
   const firstAvailableLabel = React.useMemo(() => {
-    if (!nextOpenDay || !nextOpenDay.slots[0]) return null;
+    const first =
+      nextOpenDay?.slots.find((s) => !s.taken) ?? nextOpenDay?.slots[0];
+    if (!nextOpenDay || !first) return null;
     return formatSlotForCustomer(
-      nextOpenDay.slots[0].startsAt,
+      first.startsAt,
       business.timezone,
       customerTimezone
     ).customerLabel;
@@ -239,23 +263,22 @@ export function StepDateTime({
   return (
     <div>
       {/* Signature header: business, "Choose a time", service · duration */}
-      <p className="text-xs font-medium text-muted-foreground">
+      <p className="text-[11px] font-medium text-muted-foreground">
         {business.name}
       </p>
-      <h1 className="mt-1 text-[22px] font-semibold sm:text-2xl">
-        Choose a time
-      </h1>
+      <h1 className="mt-1 text-[22px] font-semibold">Choose a time</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        {service.name} · {service.duration_minutes} min
+        {service.name} · {service.duration_minutes} minutes
       </p>
 
-      {/* First-available shortcut — outlined, directly under the header */}
-      {!loading && !error && firstAvailableLabel && !selectedSlot && (
+      {/* First-available shortcut — outlined, directly under the header.
+          The signature UI keeps it visible even with a slot selected. */}
+      {!loading && !error && firstAvailableLabel && (
         <Button
           variant="outline"
           size="sm"
           onClick={jumpToFirstAvailable}
-          className="mt-3 border-primary text-primary hover:bg-primary/5 hover:text-primary"
+          className="mt-4 border-primary text-primary hover:bg-primary/5 hover:text-primary"
         >
           First available · {firstAvailableLabel}
         </Button>
@@ -376,7 +399,7 @@ export function StepDateTime({
           selected={selectedDate}
           onSelect={(d) => {
             const day = daysByDate.get(ymdOf(d));
-            if (day && day.slots.length > 0) selectDay(day);
+            if (day && day.slots.some((s) => !s.taken)) selectDay(day);
           }}
           className="mt-3"
         />
@@ -405,7 +428,7 @@ export function StepDateTime({
           <p className="text-sm text-muted-foreground">
             Choose a day to see available times.
           </p>
-        ) : selectedDay.slots.length === 0 ? (
+        ) : !selectedDay.slots.some((s) => !s.taken) ? (
           selectedDay.status === "closed" ? (
             <div className="rounded-[0.75rem] border border-border bg-card p-6 text-center">
               <p className="text-[15px] font-semibold">
@@ -453,13 +476,14 @@ export function StepDateTime({
           <div className="flex flex-col gap-5">
             {groupedSlots.map(({ label, slots }) => (
               <section key={label} aria-label={label}>
-                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <h2 className="text-[11px] font-semibold text-muted-foreground">
                   {label}
                 </h2>
                 <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
                   {slots.map((slot) => {
                     const key = `${slot.startsAt}-${slot.staffId}`;
                     const isSelected =
+                      !slot.taken &&
                       selectedSlot?.startsAt === slot.startsAt &&
                       selectedSlot?.staffId === slot.staffId;
                     const dual = formatSlotForCustomer(
@@ -470,7 +494,13 @@ export function StepDateTime({
                     return (
                       <SlotPill
                         key={key}
-                        state={isSelected ? "selected" : "available"}
+                        state={
+                          slot.taken
+                            ? "unavailable"
+                            : isSelected
+                              ? "selected"
+                              : "available"
+                        }
                         aria-pressed={isSelected}
                         onClick={() => selectSlot(slot)}
                         title={
