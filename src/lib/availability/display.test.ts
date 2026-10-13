@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatDayLabel,
+  formatDayLabelLong,
   formatSlotForCustomer,
   nextAvailableSlot,
 } from './display';
@@ -41,6 +42,14 @@ describe('formatSlotForCustomer', () => {
 describe('formatDayLabel', () => {
   it('formats a business-local date', () => {
     expect(formatDayLabel('2026-10-08', 'America/New_York')).toBe('Thursday, Oct 8');
+  });
+});
+
+describe('formatDayLabelLong', () => {
+  it('formats a business-local date with the full month and year', () => {
+    expect(formatDayLabelLong('2026-10-08', 'America/New_York')).toBe(
+      'Thursday, October 8, 2026'
+    );
   });
 });
 
