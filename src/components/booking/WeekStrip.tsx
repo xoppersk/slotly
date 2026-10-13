@@ -57,8 +57,21 @@ export function WeekStrip({
 }: WeekStripProps) {
   const stripRef = React.useRef<HTMLDivElement>(null);
 
-  // Scroll the selected chip into view when it changes.
+  // The strip always opens scrolled to the start (first day fully
+  // visible) whenever the day set changes — initial mount, week paging.
   React.useEffect(() => {
+    if (stripRef.current) stripRef.current.scrollLeft = 0;
+  }, [days]);
+
+  // Scroll the selected chip into view when the selection changes after
+  // mount. The first render is skipped on purpose: pre-selecting a day
+  // must not pre-scroll the strip away from its start.
+  const mountedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
     if (!selected) return;
     const el = stripRef.current?.querySelector<HTMLElement>(
       `[data-day="${dayKey(selected)}"]`
