@@ -75,6 +75,7 @@ export default async function BookPage({
         staff={demo.staff}
         preselect={preselect}
         slug={slug}
+        demoMode
       />
     );
   }
