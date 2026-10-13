@@ -25,7 +25,9 @@ export {
 
 export {
   formatSlotForCustomer,
+  formatDualTimeSummary,
   formatDayLabel,
+  formatDayLabelLong,
   nextAvailableSlot,
 } from './display';
 export type { DualTimezoneLabel } from './display';

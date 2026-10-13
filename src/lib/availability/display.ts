@@ -36,6 +36,19 @@ export function formatSlotForCustomer(
 }
 
 /**
+ * The booking-summary "Time" value: "1:00 PM your time (9:00 AM business
+ * time)". The parenthetical is joined with non-breaking spaces so it can
+ * never split across lines — a wrap may only fall before it, never inside
+ * it (which would orphan the closing "time)" on its own line).
+ */
+export function formatDualTimeSummary(dual: DualTimezoneLabel): string {
+  if (!dual.showDual) return dual.customerLabel;
+  const NBSP = "\u00A0";
+  const business = dual.businessLabel.split(" ").join(NBSP);
+  return `${dual.customerLabel} your time (${business}${NBSP}business${NBSP}time)`;
+}
+
+/**
  * Format a business-local "YYYY-MM-DD" day for display, e.g.
  * "Thursday, Oct 8".
  */
@@ -43,6 +56,15 @@ export function formatDayLabel(dateYmd: string, businessTimezone: string): strin
   // local noon is unambiguous for every real-world zone
   const noon = fromZonedTime(new Date(`${dateYmd}T12:00:00.000Z`), businessTimezone).getTime();
   return formatInTimeZone(noon, businessTimezone, 'EEEE, MMM d');
+}
+
+/**
+ * Full date with year, e.g. "Thursday, October 8, 2026" — the signature
+ * UI's summary and confirmation copy.
+ */
+export function formatDayLabelLong(dateYmd: string, businessTimezone: string): string {
+  const noon = fromZonedTime(new Date(`${dateYmd}T12:00:00.000Z`), businessTimezone).getTime();
+  return formatInTimeZone(noon, businessTimezone, 'EEEE, MMMM d, yyyy');
 }
 
 /**
