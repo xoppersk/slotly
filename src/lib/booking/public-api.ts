@@ -18,6 +18,8 @@ export interface ApiSlot {
   endsAt: string;
   /** Staff member this slot belongs to. */
   staffId: string;
+  /** Present (true) when the slot is taken — renders as a disabled pill. */
+  taken?: boolean;
 }
 
 /** One day from GET /api/availability. */
@@ -200,6 +202,8 @@ export function pickNearestAlternatives(
   const out: ApiSlot[] = [];
   for (const day of days) {
     for (const slot of day.slots) {
+      // Taken pills are never offered as alternatives.
+      if (slot.taken) continue;
       if (Date.parse(slot.startsAt) > missed) {
         out.push(slot);
         if (out.length >= count) return out;

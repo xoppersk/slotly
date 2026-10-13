@@ -55,6 +55,22 @@ describe("pickNearestAlternatives", () => {
     const alt = pickNearestAlternatives(days, "2026-10-09T09:00:00Z", 3);
     expect(alt).toEqual([]);
   });
+
+  it("skips taken pills — they are never offered as alternatives", () => {
+    const withTaken: ApiDayAvailability[] = [
+      {
+        date: "2026-10-08",
+        status: "open",
+        slots: [
+          { startsAt: "2026-10-08T13:00:00Z", endsAt: "2026-10-08T14:00:00Z", staffId: "s1" },
+          { startsAt: "2026-10-08T14:00:00Z", endsAt: "2026-10-08T15:00:00Z", staffId: "s1", taken: true },
+          { startsAt: "2026-10-08T15:00:00Z", endsAt: "2026-10-08T16:00:00Z", staffId: "s2" },
+        ],
+      },
+    ];
+    const alt = pickNearestAlternatives(withTaken, "2026-10-08T13:00:00Z", 3);
+    expect(alt.map((s) => s.startsAt)).toEqual(["2026-10-08T15:00:00Z"]);
+  });
 });
 
 describe("ApiError / apiJson", () => {
