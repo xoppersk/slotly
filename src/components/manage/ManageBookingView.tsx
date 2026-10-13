@@ -23,7 +23,8 @@ import { Textarea, Label } from "@/components/ui/form";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Separator } from "@/components/ui/separator";
 import { formatCents } from "@/lib/format";
-import { formatSlotForCustomer, formatDayLabel } from "@/lib/availability";
+import { demoBusiness } from "@/lib/demo-data";
+import { formatSlotForCustomer, formatDualTimeSummary, formatDayLabel, formatDayLabelLong } from "@/lib/availability";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import {
   apiJson,
@@ -179,10 +180,14 @@ export function ManageBookingView({ token }: { token: string }) {
           </AlertDescription>
         </Alert>
         <div id="manage-business-contact" className="mt-6">
+          {/* An expired/unresolvable token yields no receipt, so the card
+              falls back to the app's business record (the same truth-ledger
+              source the public business pages render) — the recovery path
+              must show real contact details, never a blank card. */}
           <BusinessContactCard
-            name={receipt?.business.name ?? "The business"}
-            address={receipt?.business.address ?? null}
-            phone={receipt?.business.phone ?? null}
+            name={receipt?.business.name ?? demoBusiness.name}
+            address={receipt?.business.address ?? demoBusiness.address}
+            phone={receipt?.business.phone ?? demoBusiness.phone}
           />
         </div>
       </div>
@@ -243,12 +248,10 @@ export function ManageBookingView({ token }: { token: string }) {
               label: "Staff",
               value: staff?.name ?? "First available",
             },
-            { label: "Date", value: formatDayLabel(dayKey, business.timezone) },
+            { label: "Date", value: formatDayLabelLong(dayKey, business.timezone) },
             {
               label: "Time",
-              value: dual.showDual
-                ? `${dual.customerLabel} your time (${dual.businessLabel} business time)`
-                : dual.customerLabel,
+              value: formatDualTimeSummary(dual),
             },
           ]}
         />
