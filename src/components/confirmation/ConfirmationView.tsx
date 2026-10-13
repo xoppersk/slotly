@@ -16,7 +16,12 @@ import { Separator } from "@/components/ui/separator";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SuccessCheck } from "./SuccessCheck";
 import { AddToCalendarMenu, ReceiptBlock } from "./CalendarAndReceipt";
-import { formatSlotForCustomer, formatDayLabel } from "@/lib/availability";
+import {
+  formatSlotForCustomer,
+  formatDualTimeSummary,
+  formatDayLabel,
+  formatDayLabelLong,
+} from "@/lib/availability";
 import {
   apiJson,
   isValidTokenShape,
@@ -123,7 +128,7 @@ export function ConfirmationView({
         firstName: receipt.customer.name.split(" ")[0] ?? receipt.customer.name,
         heroService: receipt.service.name,
         heroStaff: receipt.staff?.name ?? "the team",
-        heroDate: formatDayLabel(dayKey, receipt.business.timezone),
+        heroDate: formatDayLabelLong(dayKey, receipt.business.timezone),
         heroTime: dual.customerLabel,
         heroTotalCents: receipt.service.priceCents,
         isDemo: bookingId.startsWith("demo-"),
@@ -133,12 +138,10 @@ export function ConfirmationView({
             label: "Staff",
             value: receipt.staff?.name ?? "First available",
           },
-          { label: "Date", value: formatDayLabel(dayKey, receipt.business.timezone) },
+          { label: "Date", value: formatDayLabelLong(dayKey, receipt.business.timezone) },
           {
             label: "Time",
-            value: dual.showDual
-              ? `${dual.customerLabel} your time (${dual.businessLabel} business time)`
-              : dual.customerLabel,
+            value: formatDualTimeSummary(dual),
           },
         ],
         payments: receipt.payments.map((p) => ({
@@ -190,7 +193,7 @@ export function ConfirmationView({
         firstName: snapshot.customerName.split(" ")[0] ?? snapshot.customerName,
         heroService: snapshot.serviceName,
         heroStaff: snapshot.staffName ?? "the team",
-        heroDate: formatDayLabel(dayKey, snapshot.businessTimezone),
+        heroDate: formatDayLabelLong(dayKey, snapshot.businessTimezone),
         heroTime: dual.customerLabel,
         heroTotalCents: snapshot.priceCents,
         isDemo: bookingId.startsWith("demo-"),
@@ -200,12 +203,10 @@ export function ConfirmationView({
             label: "Staff",
             value: snapshot.staffName ?? "First available",
           },
-          { label: "Date", value: formatDayLabel(dayKey, snapshot.businessTimezone) },
+          { label: "Date", value: formatDayLabelLong(dayKey, snapshot.businessTimezone) },
           {
             label: "Time",
-            value: dual.showDual
-              ? `${dual.customerLabel} your time (${dual.businessLabel} business time)`
-              : dual.customerLabel,
+            value: formatDualTimeSummary(dual),
           },
         ],
         payments: snapshot.amountPaidCents > 0
@@ -260,6 +261,13 @@ export function ConfirmationView({
   const manageAbsolute =
     typeof window !== "undefined" ? `${window.location.origin}${manageUrl}` : manageUrl;
 
+  // The confirmation hero uses the artifact's whole-dollar copy
+  // ("The total is $48, payable at the visit.").
+  const heroTotal =
+    view.heroTotalCents % 100 === 0
+      ? `$${(view.heroTotalCents / 100).toLocaleString("en-US")}`
+      : formatCents(view.heroTotalCents);
+
   const bookingRef = view.isDemo ? DEMO_BOOKING_REF : bookingId.slice(0, 8);
   const paidCents = view.payments
     .filter((p) => p.status === "succeeded")
@@ -292,8 +300,7 @@ export function ConfirmationView({
               </>
             ) : (
               <>
-                The total is {formatCents(view.heroTotalCents)}, payable at the
-                visit.
+                The total is {heroTotal}, payable at the visit.
               </>
             )}{" "}
             We sent the appointment details to your email.
@@ -431,7 +438,7 @@ export function ConfirmationView({
       </Card>
 
       <p className="mt-6 text-center text-xs text-muted-foreground">
-        Booking reference: <span className="font-mono">{bookingId.slice(0, 8)}</span>
+        Booking reference: <span className="font-mono">{bookingRef}</span>
       </p>
     </div>
   );
