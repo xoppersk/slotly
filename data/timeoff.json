@@ -1,0 +1,13 @@
+{
+  "requests": [
+    { "id": "to-micah-oct17", "barberId": "micah", "barber": "Micah", "label": "Sat, Oct 17 · from 3 PM", "kind": "part-day", "from": "2026-10-17", "fromTime": "3:00 PM", "status": "Approved", "approvedByLabel": "Approved by Sheku, Oct 2" },
+    { "id": "to-micah-aug22", "barberId": "micah", "barber": "Micah", "label": "Sat, Aug 22", "kind": "all-day", "from": "2026-08-22", "status": "Taken", "approvedByLabel": "Approved by Sheku, Aug 3" },
+    { "id": "to-micah-oct23-draft", "barberId": "micah", "barber": "Micah", "label": "Fri–Sat, Oct 23–24", "kind": "multi-day", "from": "2026-10-23", "to": "2026-10-24", "status": "Draft", "affectedBookings": [ { "customer": "Dev Patel", "when": "Fri 10:00" }, { "customer": "Leo Park", "when": "Fri 2:30" }, { "customer": "Tariq Hale", "when": "Sat 11:15" } ], "affectedLine": "Fri: Dev Patel 10:00, Leo Park 2:30 · Sat: Tariq Hale 11:15. Once Sheku approves, each customer gets a link to rebook." }
+  ],
+  "closures": [
+    { "id": "closed-thanksgiving", "label": "Shop closed Thu Nov 26", "date": "2026-11-26" }
+  ],
+  "away": [
+    { "barberId": "andre", "barber": "Andre", "from": "2026-10-06", "to": "2026-10-19", "label": "Away Oct 6–19", "backLabel": "Back Tuesday, October 20" }
+  ]
+}

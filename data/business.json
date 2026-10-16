@@ -1,0 +1,37 @@
+{
+  "id": "harbor-and-pine",
+  "slug": "harbor-and-pine",
+  "name": "Harbor & Pine Barbershop",
+  "shortName": "Harbor & Pine",
+  "mark": "H&P",
+  "tagline": "Three chairs, booked by appointment. Pick a service, a barber and a time — it takes about a minute.",
+  "area": "Fairmount, Philadelphia",
+  "address": {
+    "street": "214 Fairmount Ave",
+    "city": "Philadelphia",
+    "state": "PA",
+    "zip": "19123",
+    "line": "214 Fairmount Ave, Philadelphia",
+    "full": "214 Fairmount Ave, Philadelphia, PA 19123"
+  },
+  "phone": "(215) 555-0148",
+  "bookingUrl": "slotly.app/harbor-and-pine",
+  "timezone": "America/New_York",
+  "timezoneLabel": "Eastern (Philadelphia)",
+  "hours": [
+    { "days": "Monday – Friday", "weekdays": [1, 2, 3, 4, 5], "open": "9:00 AM", "close": "6:00 PM", "open24": "09:00", "close24": "18:00" },
+    { "days": "Saturday", "weekdays": [6], "open": "9:00 AM", "close": "6:00 PM", "open24": "09:00", "close24": "18:00" },
+    { "days": "Sunday", "weekdays": [0], "open": "10:00 AM", "close": "3:00 PM", "open24": "10:00", "close24": "15:00" }
+  ],
+  "hoursSummary": "Mon–Sat 9 AM – 6 PM, Sun 10 AM – 3 PM",
+  "policy": {
+    "depositCents": 2000,
+    "depositLabel": "$20 deposit holds any booking",
+    "freeChangeHoursBefore": 24,
+    "freeChangeLine": "Free to cancel or move up to 24 hours before. Later than that, the $20 deposit is kept.",
+    "slotStepMinutes": 15,
+    "minLeadHours": 2,
+    "maxAdvanceDays": 60
+  },
+  "footerLine": "Harbor & Pine Barbershop · (215) 555-0148 · Mon–Sat 9 AM – 6 PM, Sun 10 AM – 3 PM"
+}
