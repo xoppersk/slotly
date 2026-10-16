@@ -1,0 +1,126 @@
+/* Slotly v2 — public booking surface (prefix sl-b-). Geometry from Premium v2 screens. */
+.sl-b-main{max-width:1200px;margin:0 auto;padding:36px 24px 64px;box-sizing:border-box;width:100%}
+.sl-b-grid{display:grid;grid-template-columns:1fr 392px;gap:48px;align-items:start;margin-top:32px}
+.sl-b-side{position:sticky;top:24px}
+.sl-b-lead{margin:14px 0 0;font-size:17px;line-height:1.55;color:var(--ink-2);max-width:640px}
+.sl-b-card{background:var(--card);border-radius:var(--radius-xl);box-shadow:var(--shadow-ring);padding:24px}
+.sl-b-opt{display:flex;justify-content:space-between;align-items:center;gap:20px;width:100%;text-align:left;background:var(--card);border:0;border-radius:var(--radius-l);box-shadow:var(--shadow-ring);padding:20px 22px;cursor:pointer;font:inherit;color:var(--ink);margin-bottom:12px;box-sizing:border-box}
+.sl-b-opt:hover{box-shadow:0 0 0 1.5px var(--ink)}
+.sl-b-opt[aria-pressed="true"]{box-shadow:0 0 0 2px var(--oxblood)}
+.sl-b-opt__name{font:600 19px/1.2 var(--font-display);letter-spacing:-.01em}
+.sl-b-opt__meta{margin-top:5px;font-size:14px;color:var(--muted)}
+.sl-b-opt__price{font:600 20px/1 var(--font-display);white-space:nowrap}
+.sl-b-opt__avatar{width:48px;height:48px;border-radius:var(--radius-pill);background:var(--hold);color:var(--oxblood);display:grid;place-items:center;font:600 17px/1 var(--font-display);flex:none}
+.sl-b-opt__left{display:flex;gap:16px;align-items:center;min-width:0}
+.sl-b-opt--away{opacity:.75;cursor:default}
+.sl-b-field{margin-bottom:20px}
+.sl-b-field label{display:block;font-size:14px;font-weight:600;margin-bottom:8px}
+.sl-b-field .hint{font-size:13px;color:var(--muted);margin-top:6px}
+.sl-b-input{width:100%;height:52px;padding:0 16px;border:0;border-radius:var(--radius-m);background:var(--card);box-shadow:inset 0 0 0 1px var(--control);font:400 15px/1.4 var(--font-sans);color:var(--ink);box-sizing:border-box}
+.sl-b-input:focus{outline:2px solid var(--oxblood);outline-offset:1px}
+textarea.sl-b-input{height:auto;padding:14px 16px;resize:vertical}
+.sl-b-check{display:flex;gap:12px;align-items:flex-start;font-size:15px;line-height:1.5;cursor:pointer}
+.sl-b-check input{width:20px;height:20px;accent-color:var(--oxblood);flex:none;margin-top:2px}
+.sl-b-hero{font:600 52px/1.02 var(--font-display);letter-spacing:-.02em;margin:0}
+.sl-b-hero-sub{margin:16px 0 0;font-size:18px;line-height:1.55;color:var(--ink-2)}
+.sl-b-rowline{display:flex;justify-content:space-between;gap:16px;padding:16px 0;border-bottom:1px solid var(--line);align-items:center}
+.sl-b-rowline:last-child{border-bottom:0}
+.sl-b-svc-name{font:600 17px/1.3 var(--font-display)}
+.sl-b-svc-meta{font-size:14px;color:var(--muted);margin-top:3px}
+.sl-b-bookbtn{height:44px;padding:0 20px}
+.sl-b-weeknav{display:flex;justify-content:space-between;align-items:center;margin:28px 0 14px}
+.sl-b-weeknav b{font:600 18px/1.2 var(--font-display)}
+.sl-b-timeline-wrap{display:flex;flex-direction:column;gap:10px}
+.sl-b-timeline-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.sl-b-timeline-title{margin:0;font:inherit;font-size:13px;color:var(--muted)}
+.sl-b-timeline-title b{color:var(--ink);font-weight:700}
+.sl-b-legend{display:flex;gap:14px}
+.sl-b-legend span{display:inline-flex;align-items:center;gap:6px}
+.sl-b-swatch{width:10px;height:10px;border-radius:3px;flex:none}
+.sl-b-swatch--open{background:#E3EDDC;box-shadow:inset 0 0 0 1px #A9C59A}
+.sl-b-swatch--booked{background:repeating-linear-gradient(135deg,#DCCDC5 0 2px,#F2EAE5 2px 4px)}
+.sl-b-swatch--pick{background:#8A2B26}
+.sl-b-timeline{position:relative;height:40px;border-radius:12px;background:var(--card);box-shadow:var(--shadow-ring);overflow:hidden}
+.sl-b-timeline__block{position:absolute;top:6px;bottom:6px;width:7.2%;border-radius:8px}
+.sl-b-timeline__block--open{background:#E3EDDC}
+.sl-b-timeline__block--booked{background:repeating-linear-gradient(135deg,#DCCDC5 0 3px,#F2EAE5 3px 6px)}
+.sl-b-timeline__block--pick{background:#8A2B26}
+.sl-b-timeline__labels{position:relative;height:16px;font-size:12px;color:#9A8780}
+.sl-b-timeline__labels span{position:absolute;transform:translateX(-50%)}
+.sl-b-timeline__labels span:first-child{transform:none}
+.sl-b-timeline__labels span:last-child{transform:none}
+.sl-b-hint{margin-top:20px;background:var(--card-sunk);border-radius:var(--radius-l);box-shadow:var(--shadow-ring);padding:16px 18px;font-size:14px;line-height:1.55}
+.sl-b-hint a{font-weight:600}
+.sl-b-moment{font:600 48px/1.02 var(--font-display);letter-spacing:-.02em;margin:0}
+.sl-b-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+.sl-b-kv{display:grid;grid-template-columns:130px 1fr;gap:8px 16px;font-size:15px}
+.sl-b-kv dt{color:var(--muted)} .sl-b-kv dd{margin:0;font-weight:600}
+.sl-b-phonebar{display:none}
+.sl-b-topphone{display:none}
+.sl-b-phone-lead{display:none}
+.sl-b-phone-month{display:none}
+/* Phone top bar inner rows (MainPhone) */
+.sl-b-topphone__row{display:flex;align-items:center;gap:8px;height:58px;padding:0 16px 0 6px}
+.sl-b-topphone__row a{width:44px;height:44px;display:grid;place-items:center;color:var(--ink);flex:none}
+.sl-b-topphone__brand{width:28px;height:28px;border-radius:8px;background:var(--ink);color:var(--linen);display:grid;place-items:center;font:600 11px/1 var(--font-display);letter-spacing:-.03em;flex:none}
+.sl-b-topphone__row b{font-size:14px;font-weight:600}
+.sl-b-topphone__step{width:44px;text-align:right;font-size:13px;font-weight:600;color:var(--oxblood);flex:none}
+.sl-b-topphone__segs{display:flex;gap:4px;padding:0 16px 10px}
+.sl-b-topphone__segs i{flex:1;height:4px;border-radius:2px;background:var(--frame)}
+.sl-b-topphone__segs i.sl-b-seg--done{background:var(--ink)}
+.sl-b-topphone__segs i.sl-b-seg--cur{background:var(--oxblood)}
+/* Phone bottom bar inner (MainPhone dark bar) */
+.sl-b-phonebar__in{background:var(--ink);color:var(--card);border-radius:24px 24px 0 0;padding:16px 16px 26px;box-shadow:0 -18px 40px -24px rgba(38,22,19,.6);box-sizing:border-box}
+.sl-b-phonebar__row{display:flex;align-items:center;gap:12px}
+.sl-b-phonebar__hold{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+.sl-b-phonebar__holdlabel{font-size:12px;color:#CDB8AE}
+.sl-b-phonebar__count{font:600 24px/1.05 var(--font-display);color:var(--card)}
+.sl-b-phonebar__slot{text-align:right;margin-left:auto}
+.sl-b-phonebar__when{font-size:14px;font-weight:600}
+.sl-b-phonebar__money{font-size:12px;color:#CDB8AE}
+.sl-b-phonebar__cancel{margin:8px 0 0;text-align:center;font-size:12px;color:#BCA69C}
+@media (max-width:900px){.sl-b-grid{grid-template-columns:1fr}.sl-b-side{position:static}}
+@media (max-width:700px){
+ .sl-b-main{padding:20px 16px 110px}
+ .sl-b-hero{font-size:36px}.sl-b-moment{font-size:34px}
+ .sl-b-days-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
+ .sl-b-days-scroll .sl-day{min-width:64px}
+ .sl-b-phonebar{display:block;position:fixed;left:0;right:0;bottom:0;z-index:20}
+ .sl-b-topphone{display:block;background:var(--card);box-shadow:0 1px 0 #eaddd5;position:sticky;top:0;z-index:20}
+ /* SL-06 — P-04 phone artboard (MainPhone), scoped to the Time page only:
+    no desktop header/footer, no side summary (the phone bar replaces it),
+    day strip starts at TODAY with 5 equal non-scrolling tiles, slot tiles
+    without end-time sublabels, and room for the taller dark phone bar. */
+ .sl-b-timepage .sl-book-head,.sl-b-timepage .sl-book-foot{display:none}
+ .sl-b-timepage .sl-b-side{display:none}
+ .sl-b-timepage .sl-b-main{padding-bottom:196px}
+ .sl-b-timepage .sl-b-days-scroll{display:flex;gap:8px;overflow:visible;padding:2px 0 8px}
+ .sl-b-timepage .sl-b-days-scroll .sl-day{flex:1 1 0;min-width:0;padding:11px 10px 10px;gap:6px}
+ .sl-b-timepage .sl-day--past{display:none}
+ .sl-b-timepage .sl-day__wd{font-size:11px}
+ .sl-b-timepage .sl-day__num{font-size:24px}
+ .sl-b-timepage .sl-day__av{font-size:11px}
+ .sl-b-timepage .sl-day__bar{gap:1.5px}
+ .sl-b-timepage .sl-day__bar i{height:4px;border-radius:1px}
+ .sl-b-timepage .sl-slot small{display:none}
+ /* MainPhone artboard: no step eyebrow, desktop lead, week nav, timeline
+    or hint on the phone — the phone lead + month row replace them. */
+ .sl-b-timepage .sl-step-eyebrow{display:none}
+ .sl-b-timepage .sl-b-lead{display:none}
+ .sl-b-timepage .sl-b-weeknav{display:none}
+ .sl-b-timepage .sl-b-timeline-wrap{display:none}
+ .sl-b-timepage .sl-b-hint{display:none}
+ .sl-b-timepage .sl-b-phone-lead{display:flex;align-items:center;gap:10px;margin:14px 0 0;font-size:15px}
+ .sl-b-timepage .sl-b-phone-month{display:flex;justify-content:space-between;align-items:baseline;margin:22px 0 12px}
+ .sl-b-timepage .sl-b-phone-month h2{font:600 20px/1.2 var(--font-display);margin:0}
+ .sl-b-timepage .sl-b-phone-month span{font-size:13px;color:var(--muted)}
+}
+
+/* Mobile gate fluid fixes (≤560px): grid children may shrink; key/value rows stack */
+.sl-b-grid > * { min-width: 0; }
+@media (max-width: 560px) {
+  .sl-b-kv { grid-template-columns: 1fr; gap: 4px 0; }
+  .sl-b-kv dt { margin-top: 8px; }
+  .sl-b-kv dt:first-of-type { margin-top: 0; }
+  .sl-b-kv dd { overflow-wrap: anywhere; }
+}

@@ -1,0 +1,107 @@
+@import "./components.css";
+
+/* Slotly v2 — staff phone app (S-01…S-03). Class prefix `sl-`.
+   Geometry/copy copied from StaffAgenda/StaffTimeOff/StaffProfile.html.
+   Colours/radii/shadows come from tokens.css; literal hexes appear only
+   where the screens themselves draw them (logged in BUILD-LOG). */
+
+/* ---------- PhoneShell header content ---------- */
+.sl-staff-hdtitle { display: block; font: 600 24px/1.1 var(--font-display); letter-spacing: -.035em; }
+.sl-staff-hdmeta { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); }
+.sl-staff-hbtn {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--radius-pill);
+  background: var(--card); box-shadow: 0 0 0 1px #e0d0c6; color: var(--ink); cursor: pointer;
+}
+.sl-staff-hbtn:hover { box-shadow: 0 0 0 1px var(--ink); }
+.sl-staff-approver {
+  display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px 0 4px;
+  border-radius: var(--radius-l); background: var(--card); box-shadow: var(--shadow-ring);
+  font-size: 13px; color: var(--ink-2); white-space: nowrap;
+}
+.sl-staff-approver .sl-mono { width: 24px; height: 24px; font-size: 11px; }
+
+/* ---------- Section labels / footnote ---------- */
+.sl-staff-lbl { margin: 18px 4px 8px; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.sl-staff-foot { margin: 12px 4px 0; font-size: 13px; color: var(--muted); }
+
+/* ---------- Agenda rows (break / opening extend .sl-agenda-row) ---------- */
+.sl-agenda-row--break { background: #fbf7f4; }
+.sl-agenda-row--open { background: #f3f7ef; }
+.sl-staff-hatch {
+  flex: 1; align-self: stretch; display: flex; align-items: center; padding: 0 12px;
+  border-radius: var(--radius-m); font-size: 14px; font-weight: 600; color: var(--ink-2);
+}
+.sl-staff-hatch span { padding: 2px 8px; border-radius: var(--radius-s); background: #fbf7f4; }
+.sl-staff-open-dot { width: 8px; height: 8px; border-radius: 8px; background: var(--open); flex: none; }
+.sl-staff-open-label { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--open-ink); }
+
+/* ---------- Phone buttons as drawn on staff screens ---------- */
+.sl-staff-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex: none;
+  height: 44px; padding: 0 16px; border: 0; border-radius: var(--radius-pill);
+  background: var(--card); box-shadow: 0 0 0 1px #e0d0c6; color: var(--ink);
+  font: 600 14px/1 var(--font-sans); text-decoration: none; cursor: pointer; white-space: nowrap; box-sizing: border-box;
+}
+.sl-staff-btn:hover { box-shadow: 0 0 0 1px var(--ink); color: var(--ink); }
+.sl-staff-btn--primary { background: var(--oxblood); color: var(--on-oxblood); box-shadow: var(--shadow-pick); }
+.sl-staff-btn--primary:hover { background: var(--oxblood-deep); color: var(--on-oxblood); box-shadow: var(--shadow-pick); }
+.sl-staff-send {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+  height: 52px; margin-top: 14px; border: 0; border-radius: var(--radius-l);
+  background: var(--oxblood); color: var(--on-oxblood); box-shadow: var(--shadow-pick);
+  font: 600 16px/1 var(--font-sans); text-decoration: none; cursor: pointer; box-sizing: border-box;
+}
+.sl-staff-send:hover { background: var(--oxblood-deep); color: var(--on-oxblood); }
+
+/* ---------- Time-off form ---------- */
+.sl-staff-h1 { margin: 0; font: 600 34px/1 var(--font-display); letter-spacing: -.035em; }
+.sl-staff-form { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+.sl-staff-seg { display: flex; padding: 4px; border-radius: var(--radius-pill); background: var(--card); box-shadow: var(--shadow-ring); }
+.sl-staff-seg button {
+  flex: 1; height: 40px; border: 0; border-radius: var(--radius-pill); background: transparent;
+  color: var(--ink-2); font: 600 14px/1 var(--font-sans); cursor: pointer; min-height: 44px;
+}
+.sl-staff-seg button[aria-pressed="true"] { background: var(--ink); color: var(--card); }
+.sl-staff-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sl-staff-field { display: flex; flex-direction: column; gap: 6px; }
+.sl-staff-field label { font-size: 14px; font-weight: 600; }
+.sl-staff-field .sl-staff-opt { font-weight: 400; color: var(--muted); }
+.sl-staff-inp {
+  height: 46px; box-sizing: border-box; padding: 0 16px; border: 0; border-radius: var(--radius-l);
+  background: var(--card); box-shadow: 0 0 0 1px #e0d0c6; font: 400 15px/1 var(--font-sans);
+  color: var(--ink); width: 100%;
+}
+.sl-staff-inp:focus { outline: none; box-shadow: 0 0 0 2px var(--oxblood); }
+.sl-staff-warn {
+  display: flex; gap: 12px; margin-top: 14px; padding: 14px 16px; border-radius: var(--radius-l);
+  background: var(--hold); color: #4a2d28; font-size: 13px; line-height: 1.45;
+}
+.sl-staff-warn b { display: block; font-size: 14px; color: var(--ink); }
+.sl-staff-warn-n {
+  flex: none; width: 28px; height: 28px; border-radius: var(--radius-l); background: var(--card);
+  color: var(--oxblood); display: grid; place-items: center; font: 700 14px/1 var(--font-display);
+}
+.sl-staff-req { flex: 1; min-width: 0; }
+.sl-staff-req b { display: block; font-size: 14px; }
+.sl-staff-req span { font-size: 13px; color: var(--muted); }
+
+/* ---------- Profile ---------- */
+.sl-staff-idrow { display: flex; gap: 16px; align-items: center; }
+.sl-staff-photo {
+  width: 64px; height: 64px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px #e0c3bc;
+  background: var(--hold); color: var(--oxblood); display: grid; place-items: center;
+  font-size: 11px; font-weight: 600; flex: none;
+}
+.sl-staff-name { margin: 0; font: 600 34px/1 var(--font-display); letter-spacing: -.035em; }
+.sl-staff-sub { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+.sl-staff-bio { margin-top: 14px; }
+.sl-staff-bio textarea.sl-staff-inp { height: 72px; padding: 10px 16px; line-height: 1.5; resize: none; font-size: 15px; }
+.sl-staff-rowlabel { flex: 1; min-width: 0; font-size: 15px; }
+.sl-staff-rowlabel--svc { font-weight: 500; }
+
+/* Switch — geometry exactly as drawn on S-03 (44×26, see BUILD-LOG note) */
+.sl-tog { width: 44px; height: 26px; border-radius: var(--radius-m); background: #e0d0c6; position: relative; display: inline-block; border: 0; padding: 0; cursor: pointer; flex: none; }
+.sl-tog::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: var(--radius-m); background: var(--card); box-shadow: 0 1px 3px rgba(38, 22, 19, .25); }
+.sl-tog[aria-checked="true"] { background: var(--ink); }
+.sl-tog[aria-checked="true"]::after { left: 21px; }

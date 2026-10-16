@@ -1,0 +1,64 @@
+/* Slotly design tokens, generated from tokens.json */
+:root {
+  --linen: #f7f1ec;
+  --card: #ffffff;
+  --card-sunk: #fcf9f7;
+  --sand: #f1e8e2;
+  --line: #f0e6e0;
+  --frame: #e6d9d1;
+  --control: #cdbbb0;
+  --ink: #261613;
+  --ink-2: #5c4a45;
+  --muted: #7a6862;
+  --faint: #b3a39c;
+  --oxblood: #8a2b26;
+  --oxblood-deep: #6e1f1b;
+  --on-oxblood: #ffffff;
+  --hold: #f6e6e2;
+  --open: #3f6b2a;
+  --open-tint: #e8efe1;
+  --open-ink: #2f5220;
+  --away-tint: #fbebd9;
+  --away-ink: #7a4108;
+  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-sans: "Figtree", system-ui, sans-serif;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+  --selected: 2px;
+  --now-line: 2px;
+  --shadow-ring: 0 0 0 1px #EADDD5;
+  --shadow-dark: 0 30px 60px -30px rgba(38,22,19,.7);
+  --shadow-pick: 0 12px 24px -12px rgba(138,43,38,.7);
+}
+[data-theme="dark"] {
+  --linen: #171210;
+  --card: #1f1916;
+  --card-sunk: #241d1a;
+  --sand: #2c2420;
+  --line: #2e2622;
+  --frame: #3a302b;
+  --control: #5a4a43;
+  --ink: #f5eeea;
+  --ink-2: #d4c6c0;
+  --muted: #a8968f;
+  --faint: #6e5e58;
+  --oxblood: #d9776c;
+  --oxblood-deep: #e9958b;
+  --on-oxblood: #171210;
+  --hold: #3a1f1c;
+  --open: #8dbf72;
+  --open-tint: #22301a;
+  --open-ink: #a9d18f;
+  --away-tint: #3a2914;
+  --away-ink: #e8b27a;
+}
