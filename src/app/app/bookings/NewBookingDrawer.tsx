@@ -1,89 +1,117 @@
 "use client";
-/* Booking on someone's behalf (§10): the booking steps inside the
-   drawer, starting with customer search. The deposit is skipped unless
-   the owner turns it on. Confirming appends the booking to the shared
-   dashboard state, so it appears on Today, Bookings and Calendar. */
-import { useMemo, useState } from "react";
+/* Booking on someone's behalf: the drawn 5-step drawer, wired to the
+   create_booking SECURITY DEFINER RPC via the createBookingOnBehalf
+   server action (source 'dashboard'). The RPC validates the slot
+   against real availability and find-or-creates the customer (the
+   customers table has no direct INSERT policy by design).
+   Changes from the fixture version (PROD-W4.md): the fake open-times
+   grid is replaced by real date + time inputs (the RPC is the source
+   of truth for availability), the "take deposit now" toggle is gone
+   (no payment provider in production — the service's payment policy
+   decides, and the review step says what will happen), and a new
+   customer needs an email or phone because the RPC requires a contact. */
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/sl/Button";
 import { StatusPill } from "@/components/sl/StatusPill";
-import { customers, formatWholeDollars, getBarbers, getServices } from "@/lib/api";
-import type { Booking } from "@/lib/types";
-import { useDashboard } from "../DashboardContext";
-import { IconClose, IconSearch, Toggle, useDrawerTrap } from "../ui";
+import { createBookingOnBehalf } from "../actions";
+import { dateShort, wholeDollars } from "../_lib/model";
+import { IconClose, IconSearch, useDrawerTrap } from "../ui";
 
-const TIMES = ["11:30 AM", "12:45 PM", "2:15 PM", "3:45 PM", "4:30 PM", "5:15 PM"];
-
-function to24(label: string): string {
-  const m = /^(\d{1,2}):(\d{2}) (AM|PM)$/.exec(label);
-  if (!m) return "12:00";
-  let h = Number(m[1]) % 12;
-  if (m[3] === "PM") h += 12;
-  return `${String(h).padStart(2, "0")}:${m[2]}`;
-}
-function endLabel(startLabel: string, minutes: number): { label: string; t24: string } {
-  const t24 = to24(startLabel);
-  const [h, m] = t24.split(":").map(Number);
-  const total = (h ?? 0) * 60 + (m ?? 0) + minutes;
-  const eh = Math.floor(total / 60) % 24;
-  const em = total % 60;
-  const mer = eh >= 12 ? "PM" : "AM";
-  const h12 = eh % 12 === 0 ? 12 : eh % 12;
-  return { label: `${h12}:${String(em).padStart(2, "0")} ${mer}`, t24: `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}` };
+export interface NewBookingService {
+  id: string;
+  name: string;
+  durationMinutes: number;
+  priceCents: number;
+  depositCents: number;
+  paymentPolicy: "none" | "deposit" | "full";
+  staffIds: string[];
 }
 
-const STEPS = ["Customer", "Service", "Barber", "Time", "Review"] as const;
+export interface NewBookingCustomer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  visits: number;
+}
 
-export function NewBookingDrawer({ onClose }: { onClose: () => void }) {
-  const { addBooking } = useDashboard();
+const STEPS = ["Customer", "Service", "Staff", "Time", "Review"] as const;
+
+function initials(name: string): string {
+  const p = name.trim().split(/\s+/);
+  return ((p[0]?.charAt(0) ?? "") + (p.length > 1 ? p[p.length - 1]!.charAt(0) : "")).toUpperCase();
+}
+
+export function NewBookingDrawer({
+  services,
+  staffOptions,
+  customers,
+  today,
+  onClose,
+}: {
+  services: NewBookingService[];
+  staffOptions: { id: string; name: string }[];
+  customers: NewBookingCustomer[];
+  today: string;
+  onClose: () => void;
+}) {
+  const router = useRouter();
   const ref = useDrawerTrap<HTMLElement>(onClose);
-  const services = getServices();
-  const barbers = getBarbers();
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   const [step, setStep] = useState(0);
   const [query, setQuery] = useState("");
+  const [customerId, setCustomerId] = useState<string | undefined>(undefined);
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
-  const [serviceId, setServiceId] = useState(services[0]!.id);
-  const [barberId, setBarberId] = useState("micah");
-  const [time, setTime] = useState(TIMES[2]!);
-  const [takeDeposit, setTakeDeposit] = useState(false);
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
+  const [staffId, setStaffId] = useState(staffOptions[0]?.id ?? "");
+  const [dateKey, setDateKey] = useState(today);
+  const [start24, setStart24] = useState("10:00");
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return customers;
-    return customers.filter((c) => c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q));
-  }, [query]);
+    return customers.filter(
+      (c) => c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q) || c.phone.includes(q),
+    );
+  }, [query, customers]);
 
-  const service = services.find((s) => s.id === serviceId) ?? services[0]!;
-  const barber = barbers.find((b) => b.id === barberId) ?? barbers[0]!;
-  const end = endLabel(time, service.durationMinutes);
+  const service = services.find((s) => s.id === serviceId) ?? services[0];
+  const staffMember = staffOptions.find((s) => s.id === staffId);
   const canContinue =
-    step === 0 ? customerName.trim().length > 1 : true;
+    step === 0
+      ? customerName.trim().length > 1 && (customerId !== undefined || customerEmail.trim() !== "" || customerPhone.trim() !== "")
+      : step === 1
+        ? Boolean(service)
+        : step === 2
+          ? Boolean(staffMember)
+          : true;
 
   const confirm = () => {
-    const booking: Booking = {
-      id: `bk-new-${customerName.toLowerCase().replace(/[^a-z]+/g, "-")}`,
-      code: "SLY-2026-1008-NEW",
-      date: "2026-10-08",
-      start: time,
-      end: end.label,
-      start24: to24(time),
-      end24: end.t24,
-      customer: customerName.trim(),
-      customerEmail: customerEmail || `${customerName.trim().toLowerCase().replace(/[^a-z]+/g, ".")}@sevynlabs.io`,
-      serviceId: service.id,
-      service: service.name,
-      priceCents: service.priceCents,
-      barberId: barber.id,
-      barber: barber.name,
-      status: "Upcoming",
-      depositCents: takeDeposit ? service.depositCents : 0,
-      depositStatus: takeDeposit ? "paid" : "due",
-      balanceCents: service.priceCents - (takeDeposit ? service.depositCents : 0),
-      bookedAtLabel: "Booked at the shop by Sheku Thu, Oct 8 · 10:40 AM",
-    };
-    addBooking(booking);
-    onClose();
+    if (!service || !staffMember) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await createBookingOnBehalf({
+        customerId,
+        customerName: customerName.trim(),
+        customerEmail: customerEmail.trim() || undefined,
+        customerPhone: customerPhone.trim() || undefined,
+        serviceId: service.id,
+        staffId: staffMember.id,
+        dateKey,
+        start24,
+      });
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      onClose();
+      router.refresh();
+    });
   };
 
   return (
@@ -99,7 +127,7 @@ export function NewBookingDrawer({ onClose }: { onClose: () => void }) {
           </div>
           <h2 id="sl-d-new-name" className="sl-d-drawer__name" style={{ marginTop: 10 }}>New booking</h2>
           <p style={{ margin: "14px 0 0", fontSize: 15, color: "#e6d9d1" }}>
-            Book on a customer’s behalf. No deposit is taken unless you turn it on.
+            Book on a customer’s behalf. The booking is checked against real availability.
           </p>
         </div>
 
@@ -122,17 +150,25 @@ export function NewBookingDrawer({ onClose }: { onClose: () => void }) {
                     key={c.id}
                     type="button"
                     className="sl-d-opt"
-                    aria-pressed={customerName === c.name}
-                    onClick={() => { setCustomerName(c.name); setCustomerEmail(c.email); }}
+                    aria-pressed={customerId === c.id}
+                    onClick={() => {
+                      setCustomerId(c.id);
+                      setCustomerName(c.name);
+                      setCustomerEmail(c.email);
+                      setCustomerPhone(c.phone);
+                    }}
                   >
-                    <span className="sl-d-mono" aria-hidden="true">{c.initials}</span>
+                    <span className="sl-d-mono" aria-hidden="true">{initials(c.name)}</span>
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <b style={{ display: "block", fontSize: 15 }}>{c.name}</b>
-                      <span className="sl-d-sub">{c.email}</span>
+                      <span className="sl-d-sub">{c.email || c.phone}</span>
                     </span>
-                    {c.isNew ? <StatusPill status="Arrived" label="New" /> : null}
+                    {c.visits === 0 ? <StatusPill status="Arrived" label="New" /> : null}
                   </button>
                 ))}
+                {matches.length === 0 ? (
+                  <p style={{ fontSize: 14, color: "var(--muted)", margin: 0 }}>No matching customers — add them below.</p>
+                ) : null}
               </div>
               <div className="sl-d-field">
                 <label htmlFor="nb-name">Or a new customer</label>
@@ -140,10 +176,23 @@ export function NewBookingDrawer({ onClose }: { onClose: () => void }) {
                   id="nb-name"
                   className="sl-d-inp"
                   placeholder="Full name"
-                  value={matches.some((c) => c.name === customerName) ? "" : customerName}
-                  onChange={(e) => { setCustomerName(e.target.value); setCustomerEmail(""); }}
+                  value={customerId ? "" : customerName}
+                  onChange={(e) => { setCustomerId(undefined); setCustomerName(e.target.value); }}
                 />
               </div>
+              {customerId === undefined && customerName.trim().length > 1 ? (
+                <>
+                  <div className="sl-d-field">
+                    <label htmlFor="nb-email">Email</label>
+                    <input id="nb-email" className="sl-d-inp" type="email" placeholder="name@example.com" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} />
+                  </div>
+                  <div className="sl-d-field">
+                    <label htmlFor="nb-phone">Phone</label>
+                    <input id="nb-phone" className="sl-d-inp" type="tel" placeholder="Phone number" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+                  </div>
+                  <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>A new customer needs an email or a phone number.</p>
+                </>
+              ) : null}
             </div>
           ) : null}
 
@@ -155,32 +204,34 @@ export function NewBookingDrawer({ onClose }: { onClose: () => void }) {
                     <b style={{ display: "block", fontSize: 15 }}>{s.name}</b>
                     <span className="sl-d-sub">{s.durationMinutes} min</span>
                   </span>
-                  <b>{formatWholeDollars(s.priceCents)}</b>
+                  <b>{wholeDollars(s.priceCents)}</b>
                 </button>
               ))}
+              {services.length === 0 ? (
+                <p style={{ fontSize: 14, color: "var(--muted)", margin: 0 }}>No active services yet — add one in Services first.</p>
+              ) : null}
             </div>
           ) : null}
 
           {step === 2 ? (
             <div className="sl-d-opts">
-              {barbers.map((b) => {
-                const away = b.status === "Away";
+              {staffOptions.map((s) => {
+                const offered = !service || service.staffIds.length === 0 || service.staffIds.includes(s.id);
                 return (
                   <button
-                    key={b.id}
+                    key={s.id}
                     type="button"
                     className="sl-d-opt"
-                    aria-pressed={barberId === b.id}
-                    disabled={away || !b.serviceIds.includes(serviceId)}
-                    style={away || !b.serviceIds.includes(serviceId) ? { opacity: 0.55, cursor: "default" } : undefined}
-                    onClick={() => setBarberId(b.id)}
+                    aria-pressed={staffId === s.id}
+                    disabled={!offered}
+                    style={!offered ? { opacity: 0.55, cursor: "default" } : undefined}
+                    onClick={() => setStaffId(s.id)}
                   >
-                    <span className={`sl-d-mono${away ? " sl-d-mono--off" : ""}`} aria-hidden="true">{b.initial}</span>
+                    <span className="sl-d-mono" aria-hidden="true">{initials(s.name)}</span>
                     <span style={{ flex: 1, minWidth: 0 }}>
-                      <b style={{ display: "block", fontSize: 15 }}>{b.name}</b>
-                      <span className="sl-d-sub">{away ? b.away?.backLabel : `${b.serviceIds.length} services`}</span>
+                      <b style={{ display: "block", fontSize: 15 }}>{s.name}</b>
+                      <span className="sl-d-sub">{offered ? "Offers this service" : "Does not offer this service"}</span>
                     </span>
-                    {away ? <StatusPill status="Away" label={b.away?.label} /> : null}
                   </button>
                 );
               })}
@@ -188,48 +239,50 @@ export function NewBookingDrawer({ onClose }: { onClose: () => void }) {
           ) : null}
 
           {step === 3 ? (
-            <div>
-              <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--ink-2)" }}>
-                Today with {barber.name} · {service.name}
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <p style={{ margin: 0, fontSize: 14, color: "var(--ink-2)" }}>
+                {service?.name} with {staffMember?.name}
               </p>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-                {TIMES.map((t) => (
-                  <button key={t} type="button" className="sl-d-opt" style={{ justifyContent: "center" }} aria-pressed={time === t} onClick={() => setTime(t)}>
-                    <b style={{ fontSize: 15 }}>{t}</b>
-                  </button>
-                ))}
+              <div className="sl-d-field">
+                <label htmlFor="nb-date">Date</label>
+                <input id="nb-date" className="sl-d-inp" type="date" value={dateKey} min={today} onChange={(e) => setDateKey(e.target.value)} />
               </div>
+              <div className="sl-d-field">
+                <label htmlFor="nb-time">Start time</label>
+                <input id="nb-time" className="sl-d-inp" type="time" value={start24} onChange={(e) => setStart24(e.target.value)} />
+              </div>
+              <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>
+                Availability is checked when you add the booking — if the time is taken or outside hours, you’ll be told here.
+              </p>
             </div>
           ) : null}
 
-          {step === 4 ? (
+          {step === 4 && service && staffMember ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div className="sl-d-card" style={{ padding: "8px 20px 10px" }}>
                 <dl className="sl-d-dl">
                   <div><dt>Customer</dt><dd><b style={{ fontWeight: 600 }}>{customerName}</b></dd></div>
                   <div><dt>Service</dt><dd>{service.name} · {service.durationMinutes} min</dd></div>
-                  <div><dt>Barber</dt><dd>{barber.name}</dd></div>
-                  <div><dt>Time</dt><dd>Today, {time} – {end.label}</dd></div>
+                  <div><dt>Staff</dt><dd>{staffMember.name}</dd></div>
+                  <div><dt>Time</dt><dd>{dateKey === today ? "Today" : dateShort(dateKey)}, {start24}</dd></div>
                   <div>
                     <dt>Price</dt>
                     <dd>
-                      <b style={{ fontWeight: 600 }}>{formatWholeDollars(service.priceCents)}</b>
+                      <b style={{ fontWeight: 600 }}>{wholeDollars(service.priceCents)}</b>
                       <span className="sl-d-sub">
-                        {takeDeposit
-                          ? `${formatWholeDollars(service.depositCents)} deposit taken now · ${formatWholeDollars(service.priceCents - service.depositCents)} at the shop`
-                          : `No deposit · ${formatWholeDollars(service.priceCents)} at the shop`}
+                        {service.paymentPolicy === "deposit"
+                          ? `${wholeDollars(service.depositCents)} deposit — the booking is held as payment pending until it is paid`
+                          : service.paymentPolicy === "full"
+                            ? "Full payment up front — the booking is held as payment pending until it is paid"
+                            : `No deposit · ${wholeDollars(service.priceCents)} due at the shop · confirmed right away`}
                       </span>
                     </dd>
                   </div>
                 </dl>
               </div>
-              <div className="sl-d-card" style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
-                <span style={{ fontSize: 15 }}>
-                  Take the {formatWholeDollars(service.depositCents)} deposit now
-                  <span className="sl-d-sub">Off for bookings made on a customer’s behalf</span>
-                </span>
-                <Toggle checked={takeDeposit} label="Take the deposit now" onChange={setTakeDeposit} />
-              </div>
+              {error ? (
+                <p style={{ fontSize: 14, color: "var(--danger, #b3261e)", margin: 0 }}>{error}</p>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -243,7 +296,7 @@ export function NewBookingDrawer({ onClose }: { onClose: () => void }) {
               Continue
             </Button>
           ) : (
-            <Button size="dashPrimary" variant="primary" onClick={confirm}>
+            <Button size="dashPrimary" variant="primary" disabled={pending} onClick={confirm}>
               Add booking
             </Button>
           )}
