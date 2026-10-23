@@ -16,6 +16,11 @@ export function formatCents(cents: number, currency = "USD"): string {
   }).format(cents / 100);
 }
 
+/** Dashboard money: whole dollars, no cents — $672, not $672.00. */
+export function formatWholeDollars(cents: number): string {
+  return `$${Math.round(cents / 100).toLocaleString("en-US")}`;
+}
+
 /**
  * Display pass-through for phone numbers. Normalization (E.164 via Twilio
  * lookup or libphonenumber) happens in the customer phase; the UI renders
