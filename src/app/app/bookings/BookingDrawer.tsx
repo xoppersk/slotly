@@ -1,17 +1,17 @@
 "use client";
 /* D-03 Booking drawer — 480px, scrim, role="dialog" aria-modal, focus
-   trap, Esc closes. Works for any booking by id; Jordan Bell is the
-   drawn default case. Top actions advance the run-sheet status (§10);
-   No-show / Cancel sit at the bottom. */
-import { useState } from "react";
-import Link from "next/link";
+   trap, Esc closes. Shows the REAL booking: status actions are the real
+   transitions (Confirm / Complete / Cancel / No-show via server
+   actions), internal notes save to bookings.internal_notes. The drawn
+   Reschedule / Message buttons are gone — rescheduling runs through
+   the customer's manage link (public surface) and there is no
+   messaging backend (PROD-W4.md). */
+import { useState, useTransition } from "react";
 import { Button } from "@/components/sl/Button";
 import { StatusPill } from "@/components/sl/StatusPill";
-import { actionForStatus } from "@/components/sl/RunSheetRow";
-import { formatWholeDollars, getCustomer } from "@/lib/api";
-import { customers } from "@/lib/api";
-import type { Booking } from "@/lib/types";
-import { useDashboard } from "../DashboardContext";
+import { saveInternalNotes } from "../actions";
+import { BookingStatusButton, BookingTerminalButtons } from "../BookingActions";
+import { dateShort, wholeDollars, type DashBooking } from "../_lib/model";
 import { IconClose, useDrawerTrap } from "../ui";
 
 function ordinal(n: number): string {
@@ -20,37 +20,47 @@ function ordinal(n: number): string {
   return n + (s[(v - 20) % 10] ?? s[v] ?? "th");
 }
 
-function splitActivity(label: string): { title: string; sub: string } {
-  const m = /^(.*?) ((?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), .*)$/.exec(label);
-  return m ? { title: m[1]!, sub: m[2]! } : { title: label, sub: "" };
-}
+const SOURCE_LABEL: Record<string, string> = {
+  online: "Booked online",
+  phone: "Booked by phone",
+  walk_in: "Walk-in",
+  dashboard: "Booked at the shop",
+};
 
-export function BookingDrawer({ booking, onClose }: { booking: Booking; onClose: () => void }) {
-  const { advance, removeBooking } = useDashboard();
-  const [confirming, setConfirming] = useState<"noshow" | "cancel" | null>(null);
+export function BookingDrawer({
+  booking,
+  lastVisitLabel,
+  today,
+  onClose,
+}: {
+  booking: DashBooking;
+  lastVisitLabel?: string;
+  today?: string;
+  onClose: () => void;
+}) {
   const ref = useDrawerTrap<HTMLElement>(onClose);
+  const [notes, setNotes] = useState(booking.internalNotes);
+  const [notesState, setNotesState] = useState<"idle" | "saved" | "error">("idle");
+  const [saving, startSaving] = useTransition();
 
-  const customer = customers.find((c) => c.name === booking.customer) ?? getCustomer(booking.customer);
-  const action = actionForStatus(booking.status);
+  const isToday = today !== undefined && booking.dateKey === today;
+  const whenLine = `${isToday ? "Today" : dateShort(booking.dateKey)}, ${booking.startLabel.replace(/ [AP]M$/, "")} – ${booking.endLabel} · ${booking.serviceName} with ${booking.staffName}`;
   const primaryLabel =
-    booking.status === "In the chair"
-      ? `Finish and take ${formatWholeDollars(booking.balanceCents)}`
-      : action;
-  const startShort = booking.start.replace(/ [AP]M$/, "");
-  const activities = [
-    booking.reminderLabel ? splitActivity(booking.reminderLabel) : null,
-    booking.bookedAtLabel ? splitActivity(booking.bookedAtLabel) : null,
-  ].filter((x): x is { title: string; sub: string } => x !== null);
+    booking.dbStatus === "confirmed" && booking.balanceCents > 0
+      ? `Complete · ${wholeDollars(booking.balanceCents)} due at the shop`
+      : undefined;
+  const bookedAt = new Date(booking.createdAt).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+  const visits = booking.customerVisits;
 
-  const historyLine = (() => {
-    const visits = booking.visitNumber ?? customer?.visits;
-    if (!visits) return null;
-    const last = booking.lastVisitLabel ?? customer?.lastVisitLabel;
-    return {
-      main: `${ordinal(visits)} visit${last ? ` · ${last.startsWith("last") ? last : `last ${last}`}` : ""}`,
-      sub: `${booking.noShows ?? customer?.noShows ?? 0} no-shows · ${booking.reschedules ?? customer?.reschedules ?? 0} reschedule${(booking.reschedules ?? customer?.reschedules ?? 0) === 1 ? "" : "s"}`,
-    };
-  })();
+  const saveNotes = () =>
+    startSaving(async () => {
+      const res = await saveInternalNotes(booking.id, notes);
+      setNotesState(res.ok ? "saved" : "error");
+    });
 
   return (
     <>
@@ -64,22 +74,20 @@ export function BookingDrawer({ booking, onClose }: { booking: Booking; onClose:
             </button>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 10 }}>
-            <span className="sl-d-drawer__avatar" aria-hidden="true">{booking.customer.charAt(0)}</span>
-            <h2 id="sl-d-drawer-name" className="sl-d-drawer__name">{booking.customer}</h2>
+            <span className="sl-d-drawer__avatar" aria-hidden="true">{booking.customerName.charAt(0)}</span>
+            <h2 id="sl-d-drawer-name" className="sl-d-drawer__name">{booking.customerName}</h2>
           </div>
           <p style={{ margin: "14px 0 0", fontSize: 15, color: "#e6d9d1" }}>
-            Today, {startShort} – {booking.end} · {booking.service} with {booking.barber}
+            {whenLine}
           </p>
           <div className="sl-d-drawer__acts">
-            {primaryLabel ? (
-              <Button variant="linen" onClick={() => advance(booking.id)}>{primaryLabel}</Button>
-            ) : null}
-            <Link href="/b/harbor-and-pine" className="sl-btn sl-d-drawer__dark-btn" style={{ height: 48, background: "transparent", color: "var(--linen)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.24)" }}>
-              Reschedule
-            </Link>
-            <a href="#" className="sl-btn" style={{ height: 48, background: "transparent", color: "var(--linen)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.24)" }} onClick={(e) => e.preventDefault()}>
-              Message
-            </a>
+            <BookingStatusButton
+              bookingId={booking.id}
+              status={booking.dbStatus}
+              size="dashboard"
+              variant="linen"
+              label={primaryLabel}
+            />
           </div>
         </div>
 
@@ -88,81 +96,81 @@ export function BookingDrawer({ booking, onClose }: { booking: Booking; onClose:
             <dl className="sl-d-dl">
               <div>
                 <dt>Status</dt>
-                <dd><StatusPill status={booking.status} /></dd>
+                <dd><StatusPill status={booking.pill} label={booking.pillLabel} /></dd>
               </div>
               <div>
                 <dt>Payment</dt>
                 <dd>
                   <b style={{ fontWeight: 600 }}>
                     {booking.depositCents > 0
-                      ? `${formatWholeDollars(booking.depositCents)} deposit ${booking.depositStatus === "paid" ? "paid" : "due"} · ${formatWholeDollars(booking.balanceCents)} due at the shop`
-                      : `No deposit · ${formatWholeDollars(booking.balanceCents)} due at the shop`}
+                      ? booking.depositPaidCents > 0
+                        ? `${wholeDollars(booking.depositPaidCents)} deposit paid · ${wholeDollars(booking.balanceCents)} due at the shop`
+                        : `${wholeDollars(booking.depositCents)} deposit due at the shop · ${wholeDollars(booking.balanceCents)} in total`
+                      : `No deposit · ${wholeDollars(booking.balanceCents)} due at the shop`}
                   </b>
                 </dd>
               </div>
               <div>
                 <dt>Contact</dt>
                 <dd>
-                  {booking.customerEmail}
+                  {booking.customerEmail || "—"}
                   {booking.customerPhone ? (
-                    <span className="sl-d-sub">{booking.customerPhone}{booking.prefersText ? " · prefers text" : ""}</span>
+                    <span className="sl-d-sub">{booking.customerPhone}</span>
                   ) : null}
                 </dd>
               </div>
-              {historyLine ? (
+              {visits > 0 || booking.customerNoShows > 0 ? (
                 <div>
                   <dt>History</dt>
-                  <dd>{historyLine.main}<span className="sl-d-sub">{historyLine.sub}</span></dd>
+                  <dd>
+                    {visits > 0 ? `${ordinal(visits)} visit${lastVisitLabel ? ` · last ${lastVisitLabel}` : ""}` : "No visits yet"}
+                    <span className="sl-d-sub">{booking.customerNoShows} no-show{booking.customerNoShows === 1 ? "" : "s"}</span>
+                  </dd>
                 </div>
               ) : null}
-              {booking.note ? (
+              {booking.customerNotes ? (
                 <div>
                   <dt>Note</dt>
-                  <dd className="sl-d-note">“{booking.note}”</dd>
+                  <dd className="sl-d-note">“{booking.customerNotes}”</dd>
                 </div>
               ) : null}
+              <div>
+                <dt>Internal notes</dt>
+                <dd>
+                  <textarea
+                    className="sl-d-inp"
+                    style={{ width: "100%", minHeight: 64, resize: "vertical" }}
+                    value={notes}
+                    onChange={(e) => { setNotes(e.target.value); setNotesState("idle"); }}
+                    placeholder="Only your team sees these"
+                    aria-label="Internal notes"
+                  />
+                  <span style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+                    <Button size="sm" disabled={saving || notes === booking.internalNotes} onClick={saveNotes}>
+                      Save note
+                    </Button>
+                    {notesState === "saved" ? <span style={{ fontSize: 13, color: "var(--open-ink)" }}>Saved</span> : null}
+                    {notesState === "error" ? <span style={{ fontSize: 13, color: "var(--danger, #b3261e)" }}>Could not save</span> : null}
+                  </span>
+                </dd>
+              </div>
             </dl>
           </div>
 
-          {activities.length > 0 ? (
-            <div className="sl-d-card" style={{ marginTop: 12, padding: 20 }}>
-              <h3 className="sl-d-cap" style={{ margin: "0 0 12px" }}>Activity</h3>
-              <ol className="sl-d-activity">
-                {activities.map((a) => (
-                  <li key={a.title}>
-                    <i aria-hidden="true" />
-                    {a.title}
-                    {a.sub ? <span className="sl-d-sub">{a.sub}</span> : null}
-                  </li>
-                ))}
-              </ol>
-            </div>
-          ) : null}
+          <div className="sl-d-card" style={{ marginTop: 12, padding: 20 }}>
+            <h3 className="sl-d-cap" style={{ margin: "0 0 12px" }}>Activity</h3>
+            <ol className="sl-d-activity">
+              <li>
+                <i aria-hidden="true" />
+                {SOURCE_LABEL[booking.source] ?? "Booked"}
+                <span className="sl-d-sub">{bookedAt}</span>
+              </li>
+            </ol>
+          </div>
         </div>
 
         <div className="sl-d-drawer__foot">
-          {confirming === "noshow" ? (
-            <>
-              <span style={{ fontSize: 14, alignSelf: "center" }}>Mark as no-show? The deposit is kept.</span>
-              <span style={{ display: "flex", gap: 8 }}>
-                <Button size="dashboard" onClick={() => setConfirming(null)}>Back</Button>
-                <Button size="dashboard" variant="destructive" onClick={() => { removeBooking(booking.id); onClose(); }}>Mark no-show</Button>
-              </span>
-            </>
-          ) : confirming === "cancel" ? (
-            <>
-              <span style={{ fontSize: 14, alignSelf: "center" }}>Cancel this booking?</span>
-              <span style={{ display: "flex", gap: 8 }}>
-                <Button size="dashboard" onClick={() => setConfirming(null)}>Back</Button>
-                <Button size="dashboard" variant="destructive" onClick={() => { removeBooking(booking.id); onClose(); }}>Cancel booking</Button>
-              </span>
-            </>
-          ) : (
-            <>
-              <Button size="dashboard" onClick={() => setConfirming("noshow")}>Mark no-show</Button>
-              <Button size="dashboard" variant="destructive" onClick={() => setConfirming("cancel")}>Cancel booking</Button>
-            </>
-          )}
+          <BookingTerminalButtons bookingId={booking.id} status={booking.dbStatus} onDone={onClose} />
         </div>
       </aside>
     </>
