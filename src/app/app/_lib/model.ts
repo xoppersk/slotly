@@ -99,6 +99,7 @@ export function dayBoundsIso(dateKey: string, timezone: string): { fromIso: stri
   return { fromIso: start.toISOString(), toIso: end.toISOString() };
 }
 
+/** "Thursday, October 22" style title for a yyyy-mm-dd key. */
 export function dateTitle(dateKey: string): string {
   const d = new Date(`${dateKey}T12:00:00Z`);
   return d.toLocaleDateString("en-US", {
