@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { SlotlyMark } from "../icons";
 
 export interface AuthShellProps {
@@ -14,10 +15,10 @@ export function AuthShell({ headline, sub, children }: AuthShellProps) {
   return (
     <div className="sl-auth">
       <aside className="sl-auth__panel">
-        <a href="/" style={{ display: "flex", alignItems: "center", gap: 12, color: "var(--card)", textDecoration: "none" }}>
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 12, color: "var(--card)", textDecoration: "none" }}>
           <SlotlyMark />
           <span style={{ font: "600 24px/1 var(--font-display)", letterSpacing: "-.02em" }}>Slotly</span>
-        </a>
+        </Link>
         <div>
           <p className="sl-auth__headline">{headline}</p>
           <p className="sl-auth__sub">{sub}</p>
