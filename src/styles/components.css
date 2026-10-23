@@ -199,6 +199,9 @@
 .sl-side__owner { margin-top: auto; padding-top: 16px; display: flex; align-items: center; gap: 12px; }
 .sl-side__owner b { display: block; font-size: 14px; line-height: 1.25; }
 .sl-side__owner small { display: block; font-size: 13px; color: var(--muted); }
+.sl-side__signout { margin-left: auto; flex: none; }
+.sl-side__signout button { background: none; border: 0; padding: 6px 2px; font: inherit; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.sl-side__signout button:hover { color: var(--oxblood); }
 .sl-avatar { width: 36px; height: 36px; border-radius: var(--radius-pill); background: var(--hold); color: var(--oxblood); display: grid; place-items: center; font: 600 13px/1 var(--font-display); flex: none; }
 .sl-app__main { flex: 1; min-width: 0; padding: 44px 48px 56px; box-sizing: border-box; }
 @media (max-width: 900px) { .sl-app { flex-direction: column; } .sl-side { width: 100%; } .sl-app__main { padding: 28px 20px 40px; } }
