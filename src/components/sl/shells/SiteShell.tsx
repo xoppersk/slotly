@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { SlotlyMark } from "../icons";
 
 /** SiteShell — white header (Features, Pricing, Sign in, Start free) and
@@ -8,10 +9,10 @@ export function SiteShell({ children }: { children: ReactNode }) {
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <header className="sl-site-head">
         <div className="sl-wrap sl-site-head__in">
-          <a href="/" className="sl-site-logo">
+          <Link href="/" className="sl-site-logo">
             <SlotlyMark />
             <span>Slotly</span>
-          </a>
+          </Link>
           <nav className="sl-site-nav" aria-label="Site">
             <a className="sl-nl" href="/features">Features</a>
             <a className="sl-nl" href="/pricing">Pricing</a>
@@ -37,7 +38,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
               <b style={{ color: "var(--card)" }}>Product</b>
               <a href="/features">Features</a>
               <a href="/pricing">Pricing</a>
-              <a href="/b/harbor-and-pine">Example booking page</a>
+              <Link href="/b/harbor-and-pine">Example booking page</Link>
             </nav>
             <nav aria-label="Company" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <b style={{ color: "var(--card)" }}>Company</b>
