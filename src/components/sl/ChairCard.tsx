@@ -1,6 +1,6 @@
 import { Button } from "./Button";
 import { IconArrowRightLg } from "./icons";
-import { formatWholeDollars } from "@/lib/api";
+import { formatWholeDollars } from "@/lib/format";
 
 export interface ChairCardProps {
   customer: string;
