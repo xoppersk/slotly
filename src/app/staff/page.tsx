@@ -1,115 +1,146 @@
-"use client";
-import { useEffect, useState } from "react";
+/* S-01 Staff agenda (server): the signed-in staff member's OWN real
+   bookings — today plus what's coming up. Scoping is by the membership's
+   staff_id and PostgreSQL Row Level Security (bookings_staff_select
+   only ever returns their own bookings). The fixture's break row and
+   canned "open · book someone" row have no database source and are
+   gone; the Check-in button is gone with the check-in state itself
+   (PROD-W4.md). */
+import { redirect } from "next/navigation";
+import { formatInTimeZone } from "date-fns-tz";
+
 import { PhoneShell } from "@/components/sl/shells/PhoneShell";
-import { ChairCard, ChairCardNext } from "@/components/sl/ChairCard";
 import { AgendaRow } from "@/components/sl/RunSheetRow";
 import { IconCalendar } from "@/components/sl/icons";
-import { DASHBOARD_NOW, bookings as seedBookings, getBarber } from "@/lib/api";
-import { loadStoredBookings } from "@/lib/dashboard-store";
-import type { Booking } from "@/lib/types";
+import {
+  listAvailabilityOverrides,
+  listAvailabilityRules,
+  listBlackoutDates,
+  listTimeOff,
+} from "@/lib/db/owner";
+import { createClient } from "@/lib/supabase/server";
+
+import { getStaffContext, loadBookings } from "../app/_lib/data";
+import { windowFor, type AvailData } from "../app/_lib/availability-math";
+import {
+  dateShort,
+  dayBoundsIso,
+  firstName,
+  shiftDateKey,
+  todayKey,
+} from "../app/_lib/model";
+import { ChairSection } from "./ChairSection";
 
 const stripMeridiem = (t: string) => t.replace(/\s[AP]M$/, "");
 
-/* S-01 — Micah's own agenda for the dashboard day (Thu Oct 8, 10:40 AM).
-   Everything is read from the shared fixtures so the agenda agrees with
-   Today / Bookings / Calendar: Sam in the chair (5 min over, $40 left),
-   next opening 2:15 PM after Micah's 1:45–2:15 break. */
-export default function StaffAgendaPage() {
-  const micah = getBarber("micah")!;
-  // SL-04: state starts from the fixture list (same first render as
-  // before), then a mount effect swaps in the dashboard's stored
-  // bookings when present so run-sheet changes show up here.
-  const [allBookings, setAllBookings] = useState<Booking[]>(() => seedBookings.map((b) => ({ ...b })));
-  useEffect(() => {
-    const stored = loadStoredBookings();
-    if (stored) setAllBookings(stored);
-  }, []);
-  const day = allBookings.filter((b) => b.barberId === "micah" && b.date === DASHBOARD_NOW.date);
-  const chair = day.find((b) => b.status === "In the chair");
-  const next = day.filter((b) => b.status === "Upcoming").slice(0, 4);
-  const later = day.filter((b) => b.status === "Upcoming").slice(4);
-  const doneCount = day.filter((b) => b.status === "Done").length;
+export default async function StaffAgendaPage() {
+  const ctx = await getStaffContext();
+  if (!ctx) redirect("/app");
+  const { business, staff, staffId } = ctx;
+  const tz = business.timezone;
+  const today = todayKey(tz);
+  const { fromIso } = dayBoundsIso(today, tz);
+  const horizonIso = dayBoundsIso(shiftDateKey(today, 31), tz).fromIso;
 
-  const subFor = (b: Booking) =>
-    b.customer === "Jordan Bell" ? "“#2 on the sides”" : b.service;
+  const supabase = await createClient();
+  const [bundle, rules, overrides, blackouts, timeOff] = await Promise.all([
+    loadBookings(business, { fromIso, toIso: horizonIso, staffId }),
+    listAvailabilityRules(supabase, business.id),
+    listAvailabilityOverrides(supabase, business.id),
+    listBlackoutDates(supabase, business.id),
+    listTimeOff(supabase, business.id, "approved"),
+  ]);
+  const mine = bundle.bookings;
+  const todays = mine.filter((b) => b.dateKey === today && b.dbStatus !== "cancelled" && b.dbStatus !== "no_show");
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const inChair = todays.find(
+    (b) => b.dbStatus === "confirmed" && b.startsAtIso <= nowIso && b.endsAtIso > nowIso,
+  );
+  const next = todays.filter((b) => b.startsAtIso > nowIso && (b.dbStatus === "confirmed" || b.dbStatus === "pending" || b.dbStatus.startsWith("payment")));
+  const doneCount = todays.filter((b) => b.dbStatus === "completed").length;
+  const comingUp = mine.filter((b) => b.dateKey > today && b.dbStatus !== "cancelled" && b.dbStatus !== "no_show").slice(0, 3);
+
+  const avail: AvailData = { rules, overrides, blackouts, timeOff };
+  const win = staff ? windowFor(staffId, today, avail) : null;
+  const fmtMin = (mins: number) => {
+    const h = Math.floor(mins / 60);
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12}:${String(mins % 60).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+  };
+  const overrunLabel =
+    inChair && nowIso > inChair.endsAtIso
+      ? `Ran ${Math.max(1, Math.round((now.getTime() - new Date(inChair.endsAtIso).getTime()) / 60000))} min over`
+      : undefined;
 
   return (
     <PhoneShell
       current="agenda"
       header={
         <>
-          <span className="sl-staff-hdtitle">Thursday, Oct 8</span>
+          <span className="sl-staff-hdtitle">
+            {new Date(`${today}T12:00:00Z`).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" })}
+          </span>
           <span className="sl-staff-hdmeta">
-            Micah · {micah.todayBookings} bookings · 9 AM – 6 PM
+            {staff ? firstName(staff.name) : "Staff"} · {todays.length} booking{todays.length === 1 ? "" : "s"}
+            {win ? ` · ${stripMeridiem(fmtMin(win.openMinutes))} – ${fmtMin(win.closeMinutes)}` : ""}
+            {` · ${formatInTimeZone(now, tz, "h:mm a")}`}
           </span>
         </>
       }
       headerAction={
-        <button type="button" className="sl-staff-hbtn" aria-label="Pick a day">
+        <span className="sl-staff-hbtn" aria-hidden="true">
           <IconCalendar />
-        </button>
+        </span>
       }
     >
-      {chair ? (
-        <ChairCard
-          customer={chair.customer}
-          service={chair.service}
-          windowLabel={`${stripMeridiem(chair.start)} – ${stripMeridiem(chair.end)}`}
-          balanceCents={chair.balanceCents}
-          overrunLabel={chair.overrunLabel}
+      {inChair ? (
+        <ChairSection
+          bookingId={inChair.id}
+          customer={inChair.customerName}
+          service={inChair.serviceName}
+          windowLabel={`${stripMeridiem(inChair.startLabel)} – ${stripMeridiem(inChair.endLabel)}`}
+          balanceCents={inChair.balanceCents}
+          overrunLabel={overrunLabel}
         />
-      ) : next[0] ? (
-        <ChairCardNext customer={next[0].customer} time={stripMeridiem(next[0].start)} />
       ) : null}
 
       <p className="sl-staff-lbl">Next</p>
       <div className="sl-card" style={{ overflow: "hidden" }}>
-        {next.map((b, i) => (
+        {next.map((b) => (
           <AgendaRow
             key={b.id}
-            start={b.start}
-            end={b.end}
-            title={b.customer}
-            sub={subFor(b)}
-            action={
-              i === 0 ? (
-                <button type="button" className="sl-staff-btn">
-                  Check in
-                </button>
-              ) : undefined
-            }
+            start={b.startLabel}
+            end={b.endLabel}
+            title={b.customerName}
+            sub={b.customerNotes ? `“${b.customerNotes}”` : b.serviceName}
           />
         ))}
-
-        <div className="sl-agenda-row sl-agenda-row--break">
-          <span className="sl-agenda-row__t" style={{ color: "var(--muted)" }}>
-            {stripMeridiem(micah.break!.start)}
-            <small>to {stripMeridiem(micah.break!.end)}</small>
-          </span>
-          <span className="sl-hatch sl-staff-hatch">
-            <span>Break</span>
-          </span>
-        </div>
-
-        <div className="sl-agenda-row sl-agenda-row--open">
-          <span className="sl-agenda-row__t" style={{ color: "var(--open-ink)" }}>
-            {stripMeridiem(micah.nextOpening!)}
-            <small style={{ color: "var(--open-ink)" }}>to 3:00</small>
-          </span>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span className="sl-staff-open-label">
-              <i className="sl-staff-open-dot" aria-hidden="true" />
-              Open
-            </span>
-          </span>
-          <button type="button" className="sl-staff-btn sl-staff-btn--primary">
-            Book someone
-          </button>
-        </div>
+        {next.length === 0 && !inChair ? (
+          <div className="sl-agenda-row">
+            <span style={{ fontSize: 14, color: "var(--muted)" }}>Nothing else booked today.</span>
+          </div>
+        ) : null}
       </div>
 
+      {comingUp.length > 0 ? (
+        <>
+          <p className="sl-staff-lbl">Coming up</p>
+          <div className="sl-card" style={{ overflow: "hidden" }}>
+            {comingUp.map((b) => (
+              <AgendaRow
+                key={b.id}
+                start={b.startLabel}
+                end={b.endLabel}
+                title={b.customerName}
+                sub={`${dateShort(b.dateKey)} · ${b.serviceName}`}
+              />
+            ))}
+          </div>
+        </>
+      ) : null}
+
       <p className="sl-staff-foot">
-        {later.length} more later: {later.map((b) => `${b.customer} ${stripMeridiem(b.start)}`).join(", ")} · {doneCount} done today
+        {doneCount} done today{next.length > 0 ? ` · ${next.length} still to come` : ""}
       </p>
     </PhoneShell>
   );
