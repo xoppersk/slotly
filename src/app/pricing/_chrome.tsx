@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { SlotlyMark } from "@/components/sl/icons";
 
 /* Screen-exact site chrome for F-01…F-03 (see BUILD-LOG "Staff + Site
@@ -19,10 +20,10 @@ export function SiteChrome({ current, children }: { current?: "features" | "pric
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <header className="sl-mk-head">
         <div className="sl-wrap sl-mk-head__in">
-          <a href="/" className="sl-mk-logo">
+          <Link href="/" className="sl-mk-logo">
             <SlotlyMark />
             <span>Slotly</span>
-          </a>
+          </Link>
           <nav className="sl-mk-nav" aria-label="Site">
             <a className="sl-mk-nl" href="/features" aria-current={current === "features" ? "page" : undefined}>Features</a>
             <a className="sl-mk-nl" href="/pricing" aria-current={current === "pricing" ? "page" : undefined}>Pricing</a>
@@ -45,7 +46,7 @@ export function SiteChrome({ current, children }: { current?: "features" | "pric
             <b>Product</b>
             <a href="/features">Features</a>
             <a href="/pricing">Pricing</a>
-            <a href="/b/harbor-and-pine">Example booking page</a>
+            <Link href="/b/harbor-and-pine">Example booking page</Link>
           </nav>
           <nav aria-label="Company">
             <b>Company</b>
