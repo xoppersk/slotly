@@ -108,7 +108,7 @@ export function timeLabel(isoInstant: string, tz: string): string {
   return formatInTimeZone(new Date(isoInstant), tz, "h:mm a");
 }
 
-/** "9:00 AM" → end label after `dur` minutes (pure label math). */
+/** "9:00 AM" → end label after `dur` minutes ("9:45 AM"). Pure label math. */
 export function endTimeLabel(start: string, dur: number): string {
   const m = /^(\d+):(\d+) (AM|PM)$/.exec(start);
   if (!m) return "";
