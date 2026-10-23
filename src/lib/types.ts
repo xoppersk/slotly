@@ -1,11 +1,17 @@
-/* Slotly v2 — shared types for the fixture data layer (HANDOVER §9). */
+    /* Slotly v2 — shared types for the fixture data layer (HANDOVER §9). */
 
 export type BookingStatus =
   | "Done"
   | "In the chair"
   | "Arrived"
   | "Upcoming"
-  | "Confirmed";
+  | "Confirmed"
+  /* Production additions (2026-10-22): real DB states the drawn set lacked.
+     DB mapping: cancelled → "Cancelled", no_show → "No-show",
+     pending/payment_pending/payment_failed → "Pending". */
+  | "Cancelled"
+  | "No-show"
+  | "Pending";
 
 export type PillStatus =
   | BookingStatus
