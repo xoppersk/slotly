@@ -1,49 +1,78 @@
 "use client";
-/* D-08 Customers — search + filter (URL), the §9 customers table with
-   lifetime value = visits × usual price, "New" pill where drawn. */
+/* D-08 Customers — search + filter (URL) over the real customer rows.
+   Default filter is "All customers" (the fixture defaulted to a pinned
+   "booked today" canon day; with real data that would hide the list).
+   The drawn Import button is gone — customers arrive through bookings
+   (the customers table has no direct insert policy); "Add customer"
+   starts a booking on their behalf instead. */
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ButtonLink } from "@/components/sl/Button";
 import { StatusPill } from "@/components/sl/StatusPill";
 import { IconPlus } from "@/components/sl/icons";
-import { getCustomerLTVLabel, getCustomers } from "@/lib/api";
+import { initialsOf, wholeDollars } from "../_lib/model";
 import { IconSearch } from "../ui";
 
-export function CustomersClient({ q, filter }: { q: string; filter: string }) {
+export interface CustomerView {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  visits: number;
+  noShows: number;
+  isNew: boolean;
+  nextOrLastVisit: string;
+  usualService: string;
+  usualStaff: string;
+  ltvCents: number;
+  bookedToday: boolean;
+  inactive60: boolean;
+}
+
+export function CustomersClient({
+  q,
+  filter,
+  customers,
+}: {
+  q: string;
+  filter: string;
+  customers: CustomerView[];
+}) {
   const router = useRouter();
-  const all = getCustomers();
 
   const update = (patch: { q?: string; filter?: string }) => {
     const next = { q, filter, ...patch };
     const params = new URLSearchParams();
     if (next.q) params.set("q", next.q);
-    if (next.filter && next.filter !== "today") params.set("filter", next.filter);
+    if (next.filter && next.filter !== "all") params.set("filter", next.filter);
     const qs = params.toString();
     router.replace(qs ? `/app/customers?${qs}` : "/app/customers", { scroll: false });
   };
 
   const rows = useMemo(() => {
-    let list = all;
-    if (filter === "notback") list = [];
+    let list = customers;
+    if (filter === "today") list = list.filter((c) => c.bookedToday);
+    if (filter === "notback") list = list.filter((c) => c.inactive60);
     const needle = q.trim().toLowerCase();
     if (needle) {
       list = list.filter(
-        (c) => c.name.toLowerCase().includes(needle) || c.email.toLowerCase().includes(needle) || (c.phone ?? "").includes(needle),
+        (c) => c.name.toLowerCase().includes(needle) || c.email.toLowerCase().includes(needle) || c.phone.includes(needle),
       );
     }
     return list;
-  }, [all, q, filter]);
+  }, [customers, q, filter]);
+
+  const bookedTodayCount = customers.filter((c) => c.bookedToday).length;
 
   return (
     <>
       <div className="sl-d-hd">
         <div>
           <h1 className="sl-d-h1">Customers</h1>
-          <p className="sl-d-meta">Everyone who has booked with Harbor &amp; Pine</p>
+          <p className="sl-d-meta">Everyone who has booked with you</p>
         </div>
         <div className="sl-d-acts">
-          <ButtonLink href="#" size="dashboard">Import</ButtonLink>
-          <ButtonLink href="#" variant="primary" size="dashPrimary"><IconPlus />Add customer</ButtonLink>
+          <ButtonLink href="/app/bookings?new=1" variant="primary" size="dashPrimary"><IconPlus />Add customer</ButtonLink>
         </div>
       </div>
 
@@ -71,17 +100,17 @@ export function CustomersClient({ q, filter }: { q: string; filter: string }) {
       <div className="sl-d-card sl-d-scroll">
         <table className="sl-d-tbl" style={{ minWidth: 760 }}>
           <thead>
-            <tr><th>Customer</th><th className="r">Visits</th><th>Next or last visit</th><th>Usual barber</th><th className="r">Lifetime value</th><th></th></tr>
+            <tr><th>Customer</th><th className="r">Visits</th><th>Next or last visit</th><th>Usual staff</th><th className="r">Lifetime value</th><th></th></tr>
           </thead>
           <tbody>
             {rows.map((c) => (
               <tr key={c.id}>
                 <td>
                   <span className="sl-d-who">
-                    <span className="sl-d-mono" aria-hidden="true" style={{ width: 38, height: 38, fontSize: 15 }}>{c.initials}</span>
+                    <span className="sl-d-mono" aria-hidden="true" style={{ width: 38, height: 38, fontSize: 15 }}>{initialsOf(c.name)}</span>
                     <span>
-                      <a href="#" onClick={(e) => e.preventDefault()}>{c.name}</a>
-                      <span className="sl-d-sub">{c.email}</span>
+                      <span style={{ fontWeight: 600 }}>{c.name}</span>
+                      <span className="sl-d-sub">{c.email || c.phone}</span>
                     </span>
                   </span>
                 </td>
@@ -89,12 +118,12 @@ export function CustomersClient({ q, filter }: { q: string; filter: string }) {
                 <td>{c.nextOrLastVisit}</td>
                 <td>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                    <span className="sl-d-mono" aria-hidden="true" style={{ width: 24, height: 24, fontSize: 10 }}>{c.usualBarber.charAt(0)}</span>
-                    {c.usualBarber}
+                    <span className="sl-d-mono" aria-hidden="true" style={{ width: 24, height: 24, fontSize: 10 }}>{c.usualStaff.charAt(0)}</span>
+                    {c.usualStaff}
                   </span>
                 </td>
                 <td className="r" style={{ fontFamily: "var(--font-display)", fontSize: 18, letterSpacing: "-.02em" }}>
-                  {getCustomerLTVLabel(c)}
+                  {wholeDollars(c.ltvCents)}
                 </td>
                 <td>{c.isNew ? <StatusPill status="Arrived" label="New" /> : null}</td>
               </tr>
@@ -105,7 +134,7 @@ export function CustomersClient({ q, filter }: { q: string; filter: string }) {
           </tbody>
         </table>
         <p className="sl-d-foot">
-          {`Showing ${rows.length} of 14 customers booked today · `}<a href="#" onClick={(e) => e.preventDefault()}>Show all</a>
+          {`Showing ${rows.length} of ${customers.length} customers · ${bookedTodayCount} booked today`}
         </p>
       </div>
     </>
