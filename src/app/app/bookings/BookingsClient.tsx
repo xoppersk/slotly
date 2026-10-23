@@ -1,18 +1,18 @@
 "use client";
 /* D-02 Bookings — totals band, Today/Upcoming/Past/Cancelled tabs,
-   search + barber + status filters (all living in the URL), the 14-row
-   table, the D-03 drawer (?booking=[id]) and the on-behalf drawer (?new=1). */
+   search + staff + status filters (all living in the URL), the table,
+   the D-03 drawer (?booking=[id]) and the on-behalf drawer (?new=1).
+   Data is real (server-fetched); filters run over the real rows. */
 import { useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ButtonLink } from "@/components/sl/Button";
 import { StatusPill } from "@/components/sl/StatusPill";
 import { IconPlus } from "@/components/sl/icons";
-import { formatWholeDollars, getDashboardTotals } from "@/lib/api";
-import { useDashboard } from "../DashboardContext";
+import { dateShort, LIVE_STATUSES, wholeDollars, type DashBooking } from "../_lib/model";
 import { IconSearch, timeLabel, toLabel } from "../ui";
 import { BookingDrawer } from "./BookingDrawer";
-import { NewBookingDrawer } from "./NewBookingDrawer";
+import { NewBookingDrawer, type NewBookingCustomer, type NewBookingService } from "./NewBookingDrawer";
 
 export interface BookingsQuery {
   view: string;
@@ -23,6 +23,13 @@ export interface BookingsQuery {
   isNew: boolean;
 }
 
+export interface TodayTotals {
+  count: number;
+  bookedCents: number;
+  depositsCents: number;
+  toCollectCents: number;
+}
+
 const VIEWS = [
   { key: "today", label: "Today" },
   { key: "upcoming", label: "Upcoming" },
@@ -30,12 +37,27 @@ const VIEWS = [
   { key: "cancelled", label: "Cancelled" },
 ] as const;
 
-const STATUSES = ["Done", "In the chair", "Arrived", "Upcoming"] as const;
+const STATUSES = ["Pending", "Confirmed", "Done", "No-show", "Cancelled"] as const;
 
-export function BookingsClient({ query }: { query: BookingsQuery }) {
+export function BookingsClient({
+  query,
+  bookings,
+  today,
+  todayTotals,
+  staffOptions,
+  services,
+  customers,
+}: {
+  query: BookingsQuery;
+  bookings: DashBooking[];
+  today: string;
+  todayTotals: TodayTotals;
+  staffOptions: { id: string; name: string }[];
+  services: NewBookingService[];
+  customers: NewBookingCustomer[];
+}) {
   const router = useRouter();
-  const { bookings } = useDashboard();
-  const totals = getDashboardTotals(bookings);
+  const nowIso = useMemo(() => new Date().toISOString(), []);
 
   const update = (patch: Partial<BookingsQuery>) => {
     const next = { ...query, ...patch };
@@ -51,36 +73,46 @@ export function BookingsClient({ query }: { query: BookingsQuery }) {
   };
 
   const rows = useMemo(() => {
-    let list = [...bookings].sort((a, b) => a.start24.localeCompare(b.start24));
-    if (query.view === "upcoming") list = list.filter((b) => b.status === "Upcoming" || b.status === "Confirmed");
-    if (query.view === "past") list = list.filter((b) => b.status === "Done");
-    if (query.view === "cancelled") list = [];
-    if (query.barber) list = list.filter((b) => b.barberId === query.barber);
-    if (query.status) list = list.filter((b) => b.status === query.status);
+    let list = [...bookings].sort((a, b) => a.startsAtIso.localeCompare(b.startsAtIso));
+    if (query.view === "today") list = list.filter((b) => b.dateKey === today && b.dbStatus !== "cancelled");
+    if (query.view === "upcoming") {
+      list = list.filter((b) => b.startsAtIso >= nowIso && LIVE_STATUSES.includes(b.dbStatus));
+    }
+    if (query.view === "past") list = list.filter((b) => b.dbStatus === "completed" || b.dbStatus === "no_show");
+    if (query.view === "cancelled") list = list.filter((b) => b.dbStatus === "cancelled");
+    if (query.barber) list = list.filter((b) => b.staffId === query.barber);
+    if (query.status) list = list.filter((b) => b.pill === query.status);
     const q = query.q.trim().toLowerCase();
     if (q) {
       list = list.filter(
         (b) =>
-          b.customer.toLowerCase().includes(q) ||
+          b.customerName.toLowerCase().includes(q) ||
           b.code.toLowerCase().includes(q) ||
-          (b.customerPhone ?? "").includes(q) ||
+          b.customerPhone.includes(q) ||
           b.customerEmail.toLowerCase().includes(q),
       );
     }
     return list;
-  }, [bookings, query]);
+  }, [bookings, query, today, nowIso]);
 
+  const totals = todayTotals;
   const selected = query.booking ? bookings.find((b) => b.id === query.booking) : undefined;
+  const selectedLastVisit = useMemo(() => {
+    if (!selected) return undefined;
+    const prior = bookings
+      .filter((x) => x.customerId === selected.customerId && x.dbStatus === "completed" && x.id !== selected.id)
+      .sort((a, b) => b.startsAtIso.localeCompare(a.startsAtIso))[0];
+    return prior ? dateShort(prior.dateKey) : undefined;
+  }, [bookings, selected]);
 
   return (
     <>
       <div className="sl-d-hd">
         <div>
-          <p className="sl-d-eyb">Thursday, October 8 · 10:40 AM</p>
+          <p className="sl-d-eyb">{dateShort(today)}</p>
           <h1 className="sl-d-h1">Bookings</h1>
         </div>
         <div className="sl-d-acts">
-          <ButtonLink href="#" size="dashboard">Export CSV</ButtonLink>
           <ButtonLink href="/app/bookings?new=1" variant="primary" size="dashPrimary">
             <IconPlus />New booking
           </ButtonLink>
@@ -89,9 +121,9 @@ export function BookingsClient({ query }: { query: BookingsQuery }) {
 
       <div className="sl-d-ink sl-d-totals" aria-label="Today’s totals">
         <div className="sl-d-totals__cell"><b>{totals.count}</b><span>bookings</span></div>
-        <div className="sl-d-totals__cell"><b>{totals.bookedLabel}</b><span>booked</span></div>
-        <div className="sl-d-totals__cell"><b>{totals.depositsLabel}</b><span>in deposits</span></div>
-        <div className="sl-d-totals__cell"><b>{totals.toCollectLabel}</b><span>to collect at the shop</span></div>
+        <div className="sl-d-totals__cell"><b>{wholeDollars(totals.bookedCents)}</b><span>booked</span></div>
+        <div className="sl-d-totals__cell"><b>{wholeDollars(totals.depositsCents)}</b><span>in deposits</span></div>
+        <div className="sl-d-totals__cell"><b>{wholeDollars(totals.toCollectCents)}</b><span>to collect at the shop</span></div>
       </div>
 
       <div className="sl-d-tools">
@@ -120,11 +152,12 @@ export function BookingsClient({ query }: { query: BookingsQuery }) {
           />
         </label>
         <label>
-          <span className="sl-d-sr">Barber</span>
+          <span className="sl-d-sr">Staff</span>
           <select className="sl-d-sel" value={query.barber} onChange={(e) => update({ barber: e.target.value })}>
-            <option value="">All barbers</option>
-            <option value="micah">Micah</option>
-            <option value="nia">Nia</option>
+            <option value="">All staff</option>
+            {staffOptions.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
           </select>
         </label>
         <label>
@@ -139,26 +172,27 @@ export function BookingsClient({ query }: { query: BookingsQuery }) {
       <div className="sl-d-card sl-d-scroll">
         <table className="sl-d-tbl" style={{ minWidth: 760 }}>
           <thead>
-            <tr><th>Time</th><th>Customer</th><th>Service</th><th>Barber</th><th className="r">Price</th><th>Deposit</th><th>Status</th></tr>
+            <tr><th>Time</th><th>Customer</th><th>Service</th><th>Staff</th><th className="r">Price</th><th>Deposit</th><th>Status</th></tr>
           </thead>
           <tbody>
             {rows.map((b) => (
-              <tr key={b.id} className={b.status === "Done" ? "sl-d-past" : b.id === query.booking ? "sl-d-pick" : undefined}>
+              <tr key={b.id} className={b.dbStatus === "completed" ? "sl-d-past" : b.id === query.booking ? "sl-d-pick" : undefined}>
                 <td className="sl-d-tm">
                   {timeLabel(b.start24)}
                   <span className="sl-d-sub">{toLabel(b.end24)}</span>
+                  {b.dateKey !== today ? <span className="sl-d-sub">{dateShort(b.dateKey)}</span> : null}
                 </td>
                 <td>
                   <span className="sl-d-who">
-                    <span className={`sl-d-mono${b.status === "Done" ? " sl-d-mono--off" : ""}`} aria-hidden="true">{b.customer.charAt(0)}</span>
-                    <Link href={`/app/bookings?booking=${b.id}`}>{b.customer}</Link>
+                    <span className={`sl-d-mono${b.dbStatus === "completed" ? " sl-d-mono--off" : ""}`} aria-hidden="true">{b.customerName.charAt(0)}</span>
+                    <Link href={`/app/bookings?booking=${b.id}`}>{b.customerName}</Link>
                   </span>
                 </td>
-                <td>{b.service}</td>
-                <td>{b.barber}</td>
-                <td className="r" style={{ fontWeight: 600 }}>{formatWholeDollars(b.priceCents)}</td>
-                <td>{b.depositCents > 0 ? `${formatWholeDollars(b.depositCents)} ${b.depositStatus}` : "No deposit"}</td>
-                <td><StatusPill status={b.status} /></td>
+                <td>{b.serviceName}</td>
+                <td>{b.staffName}</td>
+                <td className="r" style={{ fontWeight: 600 }}>{wholeDollars(b.priceCents)}</td>
+                <td>{b.depositCents > 0 ? `${wholeDollars(b.depositCents)} ${b.depositPaidCents > 0 ? "paid" : "due"}` : "No deposit"}</td>
+                <td><StatusPill status={b.pill} label={b.pillLabel} /></td>
               </tr>
             ))}
             {rows.length === 0 ? (
@@ -169,10 +203,16 @@ export function BookingsClient({ query }: { query: BookingsQuery }) {
       </div>
 
       {selected ? (
-        <BookingDrawer booking={selected} onClose={() => update({ booking: "" })} />
+        <BookingDrawer booking={selected} lastVisitLabel={selectedLastVisit} today={today} onClose={() => update({ booking: "" })} />
       ) : null}
       {query.isNew ? (
-        <NewBookingDrawer onClose={() => update({ isNew: false })} />
+        <NewBookingDrawer
+          services={services}
+          staffOptions={staffOptions}
+          customers={customers}
+          today={today}
+          onClose={() => update({ isNew: false })}
+        />
       ) : null}
     </>
   );
