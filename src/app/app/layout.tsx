@@ -1,28 +1,65 @@
-"use client";
-/* Dashboard layout: AppShell (248px sidebar) + the dashboard stylesheet
-   + the session-level booking state provider. `current` follows the path. */
-import { usePathname } from "next/navigation";
+/* Dashboard layout: AppShell (240px sidebar) + the dashboard stylesheet.
+   The shell's owner block is fed with the live user email + business name
+   and a real Supabase sign-out action, so every dashboard route carries the
+   fix for the missing sign-out control. */
+import { AppShell, type AppShellNavKey } from "@/components/sl/shells/AppShell";
+import { signOutAction } from "@/lib/auth-actions";
+import { createClient } from "@/lib/supabase/server";
+import { serviceClient } from "@/lib/supabase/service-role";
+import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { AppShell } from "@/components/sl/shells/AppShell";
-import { DashboardProvider } from "./DashboardContext";
 import "../../styles/dashboard.css";
 
-const KEYS: [string, string][] = [
-  ["/app/bookings", "bookings"],
-  ["/app/calendar", "calendar"],
-  ["/app/customers", "customers"],
-  ["/app/services", "services"],
-  ["/app/staff", "staff"],
-  ["/app/availability", "availability"],
-  ["/app/settings", "settings"],
-];
+export default async function AppLayout({ children }: { children: ReactNode }) {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) redirect("/sign-in?next=/app");
 
-export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const pathname = usePathname() ?? "/app";
-  const current = KEYS.find(([p]) => pathname.startsWith(p))?.[1] ?? "today";
+  const sb = serviceClient();
+  const { data: membership } = await sb
+    .from("memberships")
+    .select("business_id")
+    .eq("user_id", data.user.id)
+    .eq("role", "owner")
+    .limit(1)
+    .maybeSingle();
+  if (!membership) redirect("/onboarding");
+
+  const [{ data: business }, { data: businesses }] = await Promise.all([
+    sb.from("businesses").select("name,slug").eq("id", membership.business_id).single(),
+    sb
+      .from("businesses")
+      .select("id,name,slug")
+      .in(
+        "id",
+        (
+          (await sb.from("memberships").select("business_id").eq("user_id", data.user.id)).data?.map(
+            (m) => m.business_id,
+          ) ?? [membership.business_id],
+        ),
+      ),
+  ]);
+
+  const businessesForShell = (businesses ?? []).map((b) => ({
+    id: b.id as string,
+    name: (b.name as string) ?? "Business",
+    current: b.id === membership.business_id,
+  }));
+
+  const signOut = async () => {
+    "use server";
+    await signOutAction();
+  };
+
   return (
-    <DashboardProvider>
-      <AppShell current={current}>{children}</AppShell>
-    </DashboardProvider>
+    <AppShell
+      ownerEmail={data.user.email ?? "Owner"}
+      businessName={(business?.name as string) ?? "Business"}
+      businesses={businessesForShell}
+      onSignOut={signOut}
+      navKey={"today" as AppShellNavKey}
+    >
+      {children}
+    </AppShell>
   );
 }
