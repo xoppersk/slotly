@@ -2,14 +2,31 @@ import type { Metadata } from "next";
 import "../../styles/site.css";
 import { SiteChrome, Tick } from "../pricing/_chrome";
 import { IconClock } from "@/components/sl/icons";
-import { formatCents, getKeyBooking, getService } from "@/lib/api";
+import { formatCents } from "@/lib/format";
+import { getPublicBusiness, getPublicCatalog } from "@/lib/db/public";
 
 export const metadata: Metadata = { title: "Features" };
 
 /* F-03 — Features: three alternating sections whose fragments are real UI
-   built from the shared fixtures (the Thu Oct 8 slot wall for Micah, the
-   F-08 clash card, the deposit summary for the key booking, Sam's chair
-   card from the staff agenda). */
+   (the slot wall, the F-08 clash card, Sam's chair card). The deposit
+   summary renders the featured business's REAL first service from the
+   public PostgreSQL views; the in-file example below is only a fallback
+   if the database read fails, so the marketing page never breaks. */
+
+const EXAMPLE_SERVICE = { name: "Signature haircut", priceCents: 4800, depositCents: 2000 };
+
+async function loadFeaturedService(): Promise<typeof EXAMPLE_SERVICE> {
+  try {
+    const business = await getPublicBusiness("harbor-and-pine");
+    if (!business) return EXAMPLE_SERVICE;
+    const catalog = await getPublicCatalog(business.id);
+    const service = catalog.services[0];
+    if (!service) return EXAMPLE_SERVICE;
+    return { name: service.name, priceCents: service.price_cents, depositCents: service.deposit_cents };
+  } catch {
+    return EXAMPLE_SERVICE;
+  }
+}
 
 const WALL: { time: string; kind: "held" | "open" | "booked" }[] = [
   { time: "9:00", kind: "held" },
@@ -55,9 +72,8 @@ const SECTIONS = [
   },
 ];
 
-export default function FeaturesPage() {
-  const key = getKeyBooking();
-  const service = getService(key.serviceId)!;
+export default async function FeaturesPage() {
+  const service = await loadFeaturedService();
 
   return (
     <SiteChrome current="features">
@@ -138,16 +154,26 @@ export default function FeaturesPage() {
                 <span>{service.name}</span>
                 <span>{formatCents(service.priceCents)}</span>
               </div>
-              <div className="sl-dep__due">
-                <span>Deposit due today</span>
-                <span className="amt">{formatCents(service.depositCents)}</span>
-              </div>
-              <div className="sl-dep__row">
-                <span>Pay at the shop</span>
-                <span>{formatCents(service.priceCents - service.depositCents)}</span>
-              </div>
+              {service.depositCents > 0 ? (
+                <>
+                  <div className="sl-dep__due">
+                    <span>Deposit due at the shop</span>
+                    <span className="amt">{formatCents(service.depositCents)}</span>
+                  </div>
+                  <div className="sl-dep__row">
+                    <span>Pay at the shop</span>
+                    <span>{formatCents(service.priceCents - service.depositCents)}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="sl-dep__due">
+                  <span>Due at the shop</span>
+                  <span className="amt">{formatCents(service.priceCents)}</span>
+                </div>
+              )}
               <p className="sl-dep__note">
-                Free to cancel or move until Wednesday, October 7 at 9:00 AM. After that the deposit is kept.
+                Free to cancel or move from the link in your confirmation — the shop’s cancellation window is shown
+                on every step before you book.
               </p>
             </div>
           </div>
