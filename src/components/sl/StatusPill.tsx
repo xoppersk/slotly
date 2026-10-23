@@ -12,6 +12,12 @@ const KIND: Record<string, string> = {
   "Invite sent": "sl-pill--upcoming",
   Away: "sl-pill--away",
   Taken: "sl-pill--done",
+  /* Production statuses (2026-10-22): existing variants only — Pending
+     uses the hold chip, No-show the red away chip, Cancelled the muted
+     done chip. */
+  Pending: "sl-pill--hold",
+  "No-show": "sl-pill--away",
+  Cancelled: "sl-pill--done",
 };
 
 /** StatusPill — a status is always a word in a pill (HANDOVER §5 rule 2).
