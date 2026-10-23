@@ -1,99 +1,36 @@
-"use client";
-
-import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import "../styles/site.css";
 import { SiteChrome } from "./pricing/_chrome";
-import { HoldRing, IconArrowRight } from "@/components/sl/icons";
-import { getDayAvailability, getService, getWeekAvailability } from "@/lib/api";
-import type { AvailabilityDay } from "@/lib/types";
+import { IconArrowRight } from "@/components/sl/icons";
+import { MiniPicker, type MiniPickerDemo } from "./_home/MiniPicker";
+import { getPublicBusiness, getPublicCatalog } from "@/lib/db/public";
 
 /* F-01 — Marketing. Hero at the screen's drawn 80px Bricolage (screens win
    over the brief's type table — BUILD-LOG), with the LIVE mini time picker:
-   days and slots come from the Harbor & Pine fixture for Micah, slots are
-   selectable, and picking one starts the drawn 9:58 hold countdown. */
+   the featured business (Harbor & Pine) and its first service are resolved
+   from the public PostgreSQL views on the server, and the picker itself
+   reads real slots from /api/public/availability. No fixture data. */
 
-const TOTAL_SEGMENTS = 12;
-const HOLD_SECONDS = 9 * 60 + 58;
+const FEATURED_SLUG = "harbor-and-pine";
 
-function weekdayShort(date: string): string {
-  return new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" });
-}
-
-function MiniPicker() {
-  const days = useMemo(
-    () => getWeekAvailability("micah").filter((d) => d.date >= "2026-10-06" && d.date <= "2026-10-10"),
-    [],
-  );
-  const [day, setDay] = useState<AvailabilityDay>(() => getDayAvailability("micah", "2026-10-08")!);
-  const [slot, setSlot] = useState<string | null>("9:00 AM");
-  const [secondsLeft, setSecondsLeft] = useState(HOLD_SECONDS);
-
-  useEffect(() => {
-    if (!slot) return;
-    setSecondsLeft(HOLD_SECONDS);
-    const id = window.setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
-    return () => window.clearInterval(id);
-  }, [slot, day]);
-
-  const pickDay = (d: AvailabilityDay) => {
-    setDay(d);
-    setSlot(d.slots[0] ?? null);
-  };
-
-  const shownSlots = day.slots.slice(0, 6);
-  const mm = Math.floor(secondsLeft / 60);
-  const ss = String(secondsLeft % 60).padStart(2, "0");
-
-  return (
-    <div className="sl-card sl-pick">
-      <div className="sl-pick__head">
-        <b>Choose a time</b>
-        <span>{getService("signature-haircut")!.name} · Micah</span>
-      </div>
-      <div className="sl-pick-days" role="group" aria-label="Choose a day">
-        {days.map((d) => (
-          <button
-            key={d.date}
-            type="button"
-            className="sl-pick-day"
-            aria-pressed={d.date === day.date}
-            aria-label={`${weekdayShort(d.date)} ${d.dayNumber}, ${d.openCount} open`}
-            onClick={() => pickDay(d)}
-          >
-            <span className="dw">{weekdayShort(d.date)}</span>
-            <span className="dn">{d.dayNumber}</span>
-            <span className="bar" aria-hidden="true">
-              {Array.from({ length: TOTAL_SEGMENTS }, (_, i) => (
-                <i key={i} className={i < d.openCount ? "o" : undefined} />
-              ))}
-            </span>
-          </button>
-        ))}
-      </div>
-      <div className="sl-pick-slots" role="group" aria-label="Choose a time">
-        {shownSlots.map((s) => (
-          <button
-            key={s}
-            type="button"
-            className="sl-pick-slot"
-            aria-pressed={s === slot}
-            onClick={() => setSlot(s)}
-          >
-            {s}
-          </button>
-        ))}
-      </div>
-      {slot ? (
-        <div className="sl-pick-hold">
-          <HoldRing size={46} fraction={secondsLeft / HOLD_SECONDS} />
-          <span>Holding {slot} for you</span>
-          <b>
-            {mm}:{ss}
-          </b>
-        </div>
-      ) : null}
-    </div>
-  );
+async function loadDemo(): Promise<MiniPickerDemo | null> {
+  try {
+    const business = await getPublicBusiness(FEATURED_SLUG);
+    if (!business) return null;
+    const catalog = await getPublicCatalog(business.id);
+    const service = catalog.services[0];
+    if (!service) return null;
+    return {
+      businessId: business.id,
+      serviceId: service.id,
+      serviceName: service.name,
+      businessName: business.name,
+      staffName: catalog.staff[0]?.name ?? null,
+      bookingHref: `/b/${business.slug}`,
+    };
+  } catch {
+    return null;
+  }
 }
 
 const PRINCIPLES = [
@@ -127,7 +64,8 @@ const UP_NEXT = [
   { time: "10:45 AM", initial: "L", name: "Leo Park", sub: "Signature haircut · Micah", chip: "Upcoming", kind: "up" },
 ] as const;
 
-export default function MarketingPage() {
+export default async function MarketingPage() {
+  const demo = await loadDemo();
   return (
     <SiteChrome>
       <section className="sl-wrap sl-mk-hero">
@@ -146,13 +84,13 @@ export default function MarketingPage() {
             <a href="/sign-up" className="sl-mk-cta">
               Start free <IconArrowRight />
             </a>
-            <a href="/b/harbor-and-pine" className="sl-mk-line">
+            <Link href="/b/harbor-and-pine" className="sl-mk-line">
               See a live booking page
-            </a>
+            </Link>
           </div>
           <p className="sl-mk-hero-note">Free for one person. No card needed to start.</p>
         </div>
-        <MiniPicker />
+        <MiniPicker demo={demo} />
       </section>
 
       <section className="sl-wrap sl-mk-principles">
