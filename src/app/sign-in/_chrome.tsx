@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { SlotlyMark } from "@/components/sl/icons";
 
 /* Screen-exact auth chrome for F-04…F-06 (see BUILD-LOG "Staff + Site
@@ -21,10 +22,10 @@ function WallTiles() {
 export function SignPanel() {
   return (
     <>
-      <a href="/" className="sl-auth2__logo">
+      <Link href="/" className="sl-auth2__logo">
         <SlotlyMark />
         <span>Slotly</span>
-      </a>
+      </Link>
       <div>
         <p className="sl-auth2__headline">
           Thursday&rsquo;s chair,
