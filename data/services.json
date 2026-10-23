@@ -1,7 +1,0 @@
-[
-  { "id": "signature-haircut", "name": "Signature haircut", "description": "Consult, cut, hot-towel finish and style.", "durationMinutes": 45, "priceCents": 4800, "depositCents": 2000, "offeredBy": ["micah", "nia"], "bufferAfterMinutes": 0, "online": true },
-  { "id": "skin-fade", "name": "Skin fade", "description": "Fade blended to the skin, finished with a razor line.", "durationMinutes": 50, "priceCents": 6000, "depositCents": 2000, "offeredBy": ["micah"], "bufferAfterMinutes": 0, "online": true },
-  { "id": "beard-trim", "name": "Beard trim", "description": "Shape, line and hot towel.", "durationMinutes": 25, "priceCents": 2800, "depositCents": 2000, "offeredBy": ["micah", "nia"], "bufferAfterMinutes": 0, "online": true },
-  { "id": "cut-and-beard", "name": "Cut + beard", "description": "Signature haircut and beard trim in one visit.", "durationMinutes": 60, "priceCents": 6800, "depositCents": 2000, "offeredBy": ["micah", "nia"], "bufferAfterMinutes": 0, "online": true },
-  { "id": "line-up", "name": "Line-up", "description": "Edges and neckline between cuts.", "durationMinutes": 15, "priceCents": 2000, "depositCents": 2000, "offeredBy": ["micah", "nia"], "bufferAfterMinutes": 0, "online": true }
-]
