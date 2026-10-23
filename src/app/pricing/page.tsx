@@ -1,26 +1,28 @@
 import type { Metadata } from "next";
 import "../../styles/site.css";
 import { SiteChrome, Tick } from "./_chrome";
+import { PLANS as CONFIG_PLANS, type Plan } from "@/lib/config";
+import { formatWholeDollars } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Pricing" };
 
-/* F-02 — Pricing. Plan prices are the package-flagged PLACEHOLDERS from
-   HANDOVER §12, rendered exactly as drawn (Solo $0 / Shop $24/mo /
-   Studios $59/mo, 14-day trial) — Sheku to confirm before shipping. */
+/* F-02 — Pricing. Prices come from src/lib/config.ts PLANS (config-driven;
+   the current values are the PLACEHOLDERS from HANDOVER §12 — Solo $0 /
+   Shop $24/mo / Studios $59/mo, 14-day trial — until Sheku rules final
+   prices). The drawn per-plan copy below is presentation only. */
 
-const PLANS = [
-  {
-    name: "Solo",
-    price: "$0",
+const PLAN_COPY: Record<
+  Plan["id"],
+  { per: string; blurb: string; cta: string; ink: boolean; chip?: string; features: string[] }
+> = {
+  starter: {
     per: " forever",
     blurb: "One person taking bookings.",
     cta: "Start free",
     ink: false,
     features: ["1 bookable person", "Booking page and change links", "Email confirmations and reminders", "Deposits"],
   },
-  {
-    name: "Shop",
-    price: "$24",
+  shop: {
     per: " per month",
     blurb: "A shop with a team, up to 5 people.",
     cta: "Start 14-day trial",
@@ -34,16 +36,20 @@ const PLANS = [
       "Everything in Solo",
     ],
   },
-  {
-    name: "Studios",
-    price: "$59",
+  studios: {
     per: " per month",
     blurb: "Two or more locations.",
     cta: "Start 14-day trial",
     ink: false,
     features: ["Unlimited people", "Multiple locations, one login", "Per-location hours and pricing", "Everything in Shop"],
   },
-] as const;
+};
+
+const PLANS = CONFIG_PLANS.map((plan) => ({
+  ...PLAN_COPY[plan.id],
+  name: plan.name,
+  price: formatWholeDollars(plan.monthlyPriceCents),
+}));
 
 const FAQ = [
   {
