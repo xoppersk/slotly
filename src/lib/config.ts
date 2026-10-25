@@ -1,15 +1,16 @@
 /**
  * App-wide configuration for Slotly.
  *
- * PLANS: pricing is CONFIG-DRIVEN ONLY. Sheku has not ruled final prices —
- * the defaults below are the standing placeholders (Solo $0 / Shop $24 /
- * Studios $59 per month). Override per-environment with
+ * PLANS: pricing is CONFIG-DRIVEN ONLY. Sheku ruled final prices on
+ * 2026-10-25 (undercut pricing: a bit lower than any competitor) —
+ * the defaults below are the ruled prices (Solo $0 / Shop $19 /
+ * Studios $19 per month, flat per business). Override per-environment with
  * NEXT_PUBLIC_PLAN_STARTER_CENTS / NEXT_PUBLIC_PLAN_SHOP_CENTS /
  * NEXT_PUBLIC_PLAN_STUDIOS_CENTS. Never hard-code a plan price in a page.
  */
 
-/** PLANS_ARE_PLACEHOLDER = true — prices are placeholders until Sheku rules. */
-export const PLANS_ARE_PLACEHOLDER = true;
+/** PLANS_ARE_PLACEHOLDER = false — Sheku ruled these prices on 2026-10-25. */
+export const PLANS_ARE_PLACEHOLDER = false;
 
 export const APP_NAME = "Slotly";
 export const APP_TAGLINE = "Booking pages for service businesses";
@@ -48,7 +49,7 @@ export const PLANS: Plan[] = [
   {
     id: "shop",
     name: "Shop",
-    monthlyPriceCents: priceOverride(process.env.NEXT_PUBLIC_PLAN_SHOP_CENTS, 2400),
+    monthlyPriceCents: priceOverride(process.env.NEXT_PUBLIC_PLAN_SHOP_CENTS, 1900),
     blurb: "For small teams that live on the calendar.",
     features: [
       "Up to 5 staff members",
@@ -63,7 +64,7 @@ export const PLANS: Plan[] = [
     name: "Studios",
     monthlyPriceCents: priceOverride(
       process.env.NEXT_PUBLIC_PLAN_STUDIOS_CENTS,
-      5900,
+      1900,
     ),
     blurb: "For multi-chair shops and multi-location studios.",
     features: [
