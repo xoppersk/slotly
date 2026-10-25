@@ -7,9 +7,9 @@ import { formatWholeDollars } from "@/lib/format";
 export const metadata: Metadata = { title: "Pricing" };
 
 /* F-02 — Pricing. Prices come from src/lib/config.ts PLANS (config-driven;
-   the current values are the PLACEHOLDERS from HANDOVER §12 — Solo $0 /
-   Shop $24/mo / Studios $59/mo, 14-day trial — until Sheku rules final
-   prices). The drawn per-plan copy below is presentation only. */
+   Sheku ruled final prices on 2026-10-25 — Solo $0 / Shop $19/mo /
+   Studios $19/mo flat per business, 14-day trial). The drawn per-plan
+   copy below is presentation only. */
 
 const PLAN_COPY: Record<
   Plan["id"],
