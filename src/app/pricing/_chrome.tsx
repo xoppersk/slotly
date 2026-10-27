@@ -51,7 +51,8 @@ export function SiteChrome({ current, children }: { current?: "features" | "pric
           <nav aria-label="Company">
             <b>Company</b>
             <a href="#">About</a>
-            <a href="#">hello@sevynlabs.io</a>
+            <a href="mailto:hello@sevynlabs.io">hello@sevynlabs.io</a>
+            <a href="tel:+12762702729">(276) 270-2729</a>
           </nav>
           <nav aria-label="Legal">
             <b>Legal</b>

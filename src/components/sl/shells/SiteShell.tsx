@@ -44,6 +44,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
               <b style={{ color: "var(--card)" }}>Company</b>
               <a href="#">About</a>
               <a href="mailto:hello@sevynlabs.io">hello@sevynlabs.io</a>
+              <a href="tel:+12762702729">(276) 270-2729</a>
             </nav>
             <nav aria-label="Legal" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <b style={{ color: "var(--card)" }}>Legal</b>
